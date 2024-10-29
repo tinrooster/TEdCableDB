@@ -1,0 +1,502 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { debounce } from "lodash";
+
+const ExpandedCableLengthMatrix = () => {
+  const [matrixData, setMatrixData] = useState([]);
+  const [editableData, setEditableData] = useState([]);
+  const [customRows, setCustomRows] = useState(() => {
+    const saved = localStorage.getItem("customRows");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [newRowRackId, setNewRowRackId] = useState("");
+  const [newRowStartNum, setNewRowStartNum] = useState(1);
+  const [newRowEndNum, setNewRowEndNum] = useState(10);
+  const [newRowEntryType, setNewRowEntryType] = useState("Start");
+  const [newRowEndPoint, setNewRowEndPoint] = useState("TD15");
+  const [newRowEndPointType, setNewRowEndPointType] = useState("EndPoint/MD");
+  const [newRowDistance, setNewRowDistance] = useState(0);
+  const [hoveredRowIndex, setHoveredRowIndex] = useState(null);
+  const [hoveredColIndex, setHoveredColIndex] = useState(null);
+  const [highlightEnabled, setHighlightEnabled] = useState(false);
+  const [selectedPrefixX, setSelectedPrefixX] = useState("");
+  const [selectedNumberX, setSelectedNumberX] = useState("");
+  const [selectedPrefixY, setSelectedPrefixY] = useState("");
+  const [selectedNumberY, setSelectedNumberY] = useState("");
+  const [calculatedDistance, setCalculatedDistance] = useState(null);
+
+  const initialRackSeries = ['TK', 'TJ', 'TH', 'TG', 'TF', 'TE', 'TD', 'TC', 'TX'];
+  const [rackSeries, setRackSeries] = useState(initialRackSeries);
+  const [rows, setRows] = useState([]);
+  const [selectedRow, setSelectedRow] = useState("");
+  const [adjustmentPercentage, setAdjustmentPercentage] = useState(100);
+
+  const initialRows = useMemo(() => [
+    ...Array(10).fill().map((_, i) => `TK${(i + 1).toString().padStart(2, '0')}`),
+    ...Array(10).fill().map((_, i) => `TJ${(i + 1).toString().padStart(2, '0')}`),
+    ...Array(11).fill().map((_, i) => `TH${(i + 1).toString().padStart(2, '0')}`),
+    ...Array(12).fill().map((_, i) => `TG${(i + 1).toString().padStart(2, '0')}`),
+    ...Array(12).fill().map((_, i) => `TF${(i + 1).toString().padStart(2, '0')}`),
+    ...Array(13).fill().map((_, i) => `TE${(i + 1).toString().padStart(2, '0')}`),
+    ...Array(15).fill().map((_, i) => `TD${(i + 1).toString().padStart(2, '0')}`),
+    ...Array(11).fill().map((_, i) => `TC${(i + 3).toString().padStart(2, '0')}`),
+    ...Array(12).fill().map((_, i) => `TX${(17 - i).toString().padStart(2, '0')}`),
+  ], []);
+
+  const calculateLength = (rack1, rack2, customRows) => {
+    if (rack1 === rack2) return 22;
+
+    const [prefix1, num1] = [rack1.slice(0, 2), parseInt(rack1.slice(2))];
+    const [prefix2, num2] = [rack2.slice(0, 2), parseInt(rack2.slice(2))];
+
+    const getRowIndex = (prefix) => {
+      const standardIndex = initialRackSeries.indexOf(prefix);
+      if (standardIndex !== -1) return standardIndex;
+      return initialRackSeries.length + customRows.findIndex(row => row.rackId === prefix);
+    };
+
+    const rowIndex1 = getRowIndex(prefix1);
+    const rowIndex2 = getRowIndex(prefix2);
+
+    if (rowIndex1 === -1 || rowIndex2 === -1) {
+      console.error("Invalid rack identifier");
+      return 0;
+    }
+
+    const getRowLength = (prefix) => {
+      const standardRow = initialRows.filter(rack => rack.startsWith(prefix));
+      if (standardRow.length > 0) return standardRow.length;
+      const customRow = customRows.find(row => row.rackId === prefix);
+      return customRow ? (customRow.endNum - customRow.startNum + 1) : 10;
+    };
+
+    const calculateInRowDistance = (start, end, rowLength) => {
+      const distance = Math.abs(end - start) * 2;
+      return Math.min(distance, (rowLength - 1) * 2 - distance);
+    };
+
+    if (prefix1 === prefix2) {
+      return 22 + calculateInRowDistance(num1, num2, getRowLength(prefix1));
+    }
+
+    let length = 0;
+    let currentPrefix = prefix1;
+    let currentNum = num1;
+
+    while (currentPrefix !== prefix2) {
+      const rowLength = getRowLength(currentPrefix);
+      length += calculateInRowDistance(currentNum, rowLength, rowLength);
+      
+      const currentRowIndex = getRowIndex(currentPrefix);
+      const nextRowIndex = currentRowIndex + 1;
+      const nextPrefix = initialRackSeries[nextRowIndex] || customRows[nextRowIndex - initialRackSeries.length]?.rackId;
+      
+      if (!nextPrefix) {
+        console.error("Invalid rack sequence");
+        return 0;
+      }
+
+      length += 8;
+      currentPrefix = nextPrefix;
+      currentNum = 1;
+    }
+
+    length += calculateInRowDistance(currentNum, num2, getRowLength(currentPrefix));
+
+    if (prefix1 === "TD" || prefix2 === "TD") {
+      if ((prefix1 === "TD" && num1 >= 14) || (prefix2 === "TD" && num2 >= 14)) {
+        length += 12;
+      }
+    }
+
+    if (prefix1 === "TX" || prefix2 === "TX") {
+      length += 16;
+      if (prefix1 === "TX") {
+        length -= calculateInRowDistance(num1, 1, getRowLength(prefix1));
+      } else if (prefix2 === "TX") {
+        length -= calculateInRowDistance(1, num2, getRowLength(prefix2));
+      }
+    }
+
+    const customRow1 = customRows.find(row => row.rackId === prefix1);
+    const customRow2 = customRows.find(row => row.rackId === prefix2);
+
+    if (customRow1 || customRow2) {
+      const customRow = customRow1 || customRow2;
+      const baseDistance = customRow.distance;
+
+      if (customRow.endPoint === 'TD15') {
+        if (customRow.endPointType === 'EndPoint/MD') {
+          length = 22 + baseDistance + calculateInRowDistance(num1, num2, getRowLength(prefix1));
+        } else {
+          length = calculateLength('TD15', (customRow1 ? rack2 : rack1), customRows) + baseDistance;
+        }
+      } else if (customRow.endPoint === 'Main Closet Riser') {
+        length = calculateLength('TF12', (customRow1 ? rack2 : rack1), customRows) + baseDistance;
+      } else if (customRow.endPoint === 'Roof Access Riser') {
+        length = calculateLength('TC13', (customRow1 ? rack2 : rack1), customRows) + baseDistance;
+      } else {
+        length = 60 + baseDistance + calculateInRowDistance(num1, num2, getRowLength(prefix1));
+      }
+    }
+
+    return length + 22;
+  };
+
+  const matrixDataMemo = useMemo(() => {
+    const allRows = [
+      ...initialRows,
+      ...customRows.flatMap((row) =>
+        Array(row.endNum - row.startNum + 1)
+          .fill()
+          .map((_, i) => `${row.rackId}${(row.startNum + i).toString().padStart(2, "0")}`)
+      ),
+    ];
+
+    const calculatedMatrix = allRows.map((row, i) =>
+      allRows.map((col, j) => {
+        if (i <= j) {
+          return calculateLength(row, col, customRows);
+        } else {
+          return calculatedMatrix[j][i]; // Use the symmetric value
+        }
+      })
+    );
+
+    return { calculatedMatrix, allRows };
+  }, [initialRows, customRows, calculateLength]);
+
+  useEffect(() => {
+    setMatrixData(matrixDataMemo.calculatedMatrix);
+    setEditableData(matrixDataMemo.calculatedMatrix.map((row) => [...row]));
+    setRows(matrixDataMemo.allRows);
+    localStorage.setItem("customRows", JSON.stringify(customRows));
+  }, [matrixDataMemo, customRows]);
+
+  const handleCellEdit = debounce((rowIndex, colIndex, value) => {
+    setEditableData(prevEditableData => {
+      const newEditableData = prevEditableData.map((row, i) =>
+        i === rowIndex ? row.map((cell, j) => (j === colIndex ? parseInt(value) || 0 : cell)) : row
+      );
+      return newEditableData;
+    });
+  }, 300);
+
+  const handleRowAdjustment = () => {
+    if (!selectedRow || adjustmentPercentage === 100) return;
+
+    setEditableData((prevData) => {
+      const newEditableData = prevData.map((row) => [...row]);
+      const rowIndices = rows.reduce((indices, row, index) => {
+        if (row.startsWith(selectedRow)) indices.push(index);
+        return indices;
+      }, []);
+
+      rowIndices.forEach((rowIndex) => {
+        for (let i = 0; i < newEditableData[rowIndex].length; i++) {
+          newEditableData[rowIndex][i] = Math.round(
+            newEditableData[rowIndex][i] * (adjustmentPercentage / 100)
+          );
+        }
+      });
+      return newEditableData;
+    });
+  };
+
+  const handleAddNewRack = () => {
+    if (!newRowRackId || newRowStartNum > newRowEndNum) {
+      console.error("Invalid new rack data");
+      return;
+    }
+
+    const newRow = {
+      rackId: newRowRackId,
+      startNum: newRowStartNum,
+      endNum: newRowEndNum,
+      endPoint: newRowEndPoint,
+      endPointType: newRowEndPointType,
+      distance: newRowDistance,
+      entryType: newRowEntryType,
+    };
+
+    setCustomRows((prevRows) => [...prevRows, newRow]);
+    setRackSeries((prevSeries) => [...prevSeries, newRowRackId]);
+
+    setNewRowRackId("");
+    setNewRowStartNum(1);
+    setNewRowEndNum(10);
+    setNewRowEndPoint("TD15");
+    setNewRowEndPointType("EndPoint/MD");
+    setNewRowDistance(0);
+  };
+
+  const handleRemoveCustomRow = (rackId) => {
+    setCustomRows((prevRows) => prevRows.filter((row) => row.rackId !== rackId));
+    setRackSeries((prevSeries) => prevSeries.filter((series) => series !== rackId));
+  };
+
+  useEffect(() => {
+    if (selectedPrefixX && selectedNumberX && selectedPrefixY && selectedNumberY) {
+      const rackID_X = `${selectedPrefixX}${selectedNumberX.padStart(2, '0')}`;
+      const rackID_Y = `${selectedPrefixY}${selectedNumberY.padStart(2, '0')}`;
+      const rowIndex = rows.indexOf(rackID_X);
+      const colIndex = rows.indexOf(rackID_Y);
+      if (rowIndex >= 0 && colIndex >= 0) {
+        setCalculatedDistance(editableData[rowIndex]?.[colIndex]);
+      } else {
+        setCalculatedDistance("N/A");
+      }
+    } else {
+      setCalculatedDistance(null);
+    }
+  }, [selectedPrefixX, selectedNumberX, selectedPrefixY, selectedNumberY, editableData, rows]);
+
+  return (
+    <div>
+      <div style={titleBarStyle}>
+        <span style={leftTitleStyle}>ABC7 KGO-TV Engineering</span>
+        <span style={centerTitleStyle}>TE room Cable Distance Matrix</span>
+        <span style={rightTitleStyle}>AC Hay 2024</span>
+      </div>
+
+      <div style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "20px" }}>
+        <select value={selectedPrefixX} onChange={(e) => setSelectedPrefixX(e.target.value)}>
+          <option value="">(X Rack)</option>
+          {rackSeries.map((prefix) => (
+            <option key={prefix} value={prefix}>{prefix}</option>
+          ))}
+        </select>
+
+        <select value={selectedNumberX} onChange={(e) => setSelectedNumberX(e.target.value)}>
+          <option value="">(X #)</option>
+          {Array.from({ length: 15 }, (_, i) => (
+            <option key={i + 1} value={i + 1}>{i + 1}</option>
+          ))}
+        </select>
+
+        <select value={selectedPrefixY} onChange={(e) => setSelectedPrefixY(e.target.value)}>
+          <option value="">(Y Rack)</option>
+          {rackSeries.map((prefix) => (
+            <option key={prefix} value={prefix}>{prefix}</option>
+          ))}
+        </select>
+
+        <select value={selectedNumberY} onChange={(e) => setSelectedNumberY(e.target.value)}>
+          <option value="">(Y #)</option>
+          {Array.from({ length: 15 }, (_, i) => (
+            <option key={i + 1} value={i + 1}>{i + 1}</option>
+          ))}
+        </select>
+
+        {calculatedDistance !== null && (
+          <div style={{ marginLeft: "20px", fontWeight: "bold" }}>
+            Calculated Distance: {calculatedDistance}
+          </div>
+        )}
+
+        <label style={{ marginLeft: "20px" }}>
+          <input
+            type="checkbox"
+            checked={highlightEnabled}
+            onChange={(e) => setHighlightEnabled(e.target.checked)}
+          />
+          Enable Highlighting
+        </label>
+      </div>
+
+      <div style={{ overflowX: "auto", maxHeight: "80vh", overflowY: "auto" }}>
+        <table
+          style={{ borderCollapse: "collapse", fontSize: "12px" }}
+          onMouseLeave={() => { setHoveredRowIndex(null); setHoveredColIndex(null); }}
+        >
+          <thead>
+            <tr>
+              <th style={headerStyle}>From \ To</th>
+              {rows.map((col
+			  {rows.map((col, colIndex) => (
+                <th
+                  key={col}
+                  style={{
+                    ...headerStyle,
+                    backgroundColor: highlightEnabled && colIndex === hoveredColIndex ? "#D3D3D3" : "#4CAF50",
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    borderLeft: colIndex % 10 === 0 ? "2px solid #888" : "1px solid #ddd",
+                  }}
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIndex) => {
+              const isNewSeries = rowIndex === 0 || row.slice(0, 2) !== rows[rowIndex - 1].slice(0, 2);
+              return (
+                <tr
+                  key={row}
+                  style={{
+                    backgroundColor: rowIndex % 20 >= 10 ? "#F8F8F8" : "#FFFFFF",
+                    borderTop: isNewSeries ? "2px solid #888" : "none",
+                  }}
+                  onMouseEnter={() => highlightEnabled && setHoveredRowIndex(rowIndex)}
+                >
+                  <td style={{
+                    ...headerStyle,
+                    backgroundColor: "#4CAF50",
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                  }}>
+                    {row}
+                  </td>
+                  {editableData[rowIndex]?.map((length, colIndex) => (
+                    <td
+                      key={colIndex}
+                      style={{
+                        ...cellStyle,
+                        backgroundColor: highlightEnabled && (rowIndex === hoveredRowIndex || colIndex === hoveredColIndex) ? "#D3D3D3" : undefined,
+                        borderLeft: colIndex % 10 === 0 ? "2px solid #888" : "1px solid #ddd",
+                      }}
+                      onMouseEnter={() => highlightEnabled && setHoveredColIndex(colIndex)}
+                    >
+                      <input
+                        type="number"
+                        value={length}
+                        onChange={(e) => handleCellEdit(rowIndex, colIndex, e.target.value)}
+                        style={{ width: "100%", border: "none", background: "transparent", textAlign: "center" }}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ marginTop: "20px" }}>
+        <h4>Change Rack Row values by %</h4>
+        <p style={{ fontSize: "12px", marginTop: "5px", marginBottom: "10px" }}>
+          Overwrites old values for entire rack row
+        </p>
+        <select value={selectedRow} onChange={(e) => setSelectedRow(e.target.value)}>
+          <option value="">Select Row</option>
+          {rackSeries.map((series) => (
+            <option key={series} value={series}>
+              {series}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          value={adjustmentPercentage}
+          onChange={(e) => setAdjustmentPercentage(Math.max(0, Math.min(200, parseInt(e.target.value) || 0)))}
+          style={{ marginLeft: "10px", width: "60px" }}
+        />
+        <span style={{ marginLeft: "5px" }}>%</span>
+        <button onClick={handleRowAdjustment} style={{ marginLeft: "10px" }}>
+          Adjust Row
+        </button>
+      </div>
+
+      <div style={{ marginTop: "20px" }}>
+        <h3>Add New Rack(s)</h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "300px" }}>
+          <div>
+            <label style={{ display: 'inline-block', width: '120px' }}>Rack ID: </label>
+            <input type="text" value={newRowRackId} onChange={(e) => setNewRowRackId(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ display: 'inline-block', width: '120px' }}>Start Number: </label>
+            <input type="number" value={newRowStartNum} onChange={(e) => setNewRowStartNum(parseInt(e.target.value) || 1)} />
+          </div>
+          <div>
+            <label style={{ display: 'inline-block', width: '120px' }}>End Number: </label>
+            <input type="number" value={newRowEndNum} onChange={(e) => setNewRowEndNum(parseInt(e.target.value) || 10)} />
+          </div>
+          <div>
+            <label style={{ display: 'inline-block', width: '120px' }}>Entry Type: </label>
+            <select value={newRowEntryType} onChange={(e) => setNewRowEntryType(e.target.value)}>
+              <option value="Start">Start</option>
+              <option value="End">End</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'inline-block', width: '120px' }}>EndPoint/MD: </label>
+            <select value={newRowEndPoint} onChange={(e) => setNewRowEndPoint(e.target.value)}>
+              <option value="TD15">TD15</option>
+              <option value="Main Closet Riser">Main Closet Riser</option>
+              <option value="Roof Access Riser">Roof Access Riser</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'inline-block', width: '120px' }}>EndPoint Type: </label>
+            <select value={newRowEndPointType} onChange={(e) => setNewRowEndPointType(e.target.value)}>
+              <option value="EndPoint/MD">EndPoint/MD</option>
+              <option value="Direct">Direct</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'inline-block', width: '120px' }}>Distance: </label>
+            <input type="number" value={newRowDistance} onChange={(e) => setNewRowDistance(parseInt(e.target.value) || 0)} />
+          </div>
+        </div>
+        <button onClick={handleAddNewRack} style={{ marginTop: '10px' }}>Add Rack(s)</button>
+      </div>
+
+      <div style={{ marginTop: '20px' }}>
+        <h3>Custom Rows</h3>
+        {customRows.map(row => (
+          <div key={row.rackId}>
+            {row.rackId} (EndPoint: {row.endPoint}, Type: {row.endPointType}, Distance: {row.distance})
+            <button onClick={() => handleRemoveCustomRow(row.rackId)}>Remove</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const titleBarStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '10px',
+  borderBottom: '2px solid #4CAF50',
+};
+
+const leftTitleStyle = {
+  fontWeight: 'bold',
+  fontSize: '18px',
+};
+
+const centerTitleStyle = {
+  fontWeight: 'bold',
+  fontSize: '22px',
+};
+
+const rightTitleStyle = {
+  fontWeight: 'normal',
+  fontSize: '14px',
+};
+
+const headerStyle = {
+  position: "sticky",
+  top: 0,
+  left: 0,
+  backgroundColor: "#4CAF50",
+  color: "white",
+  zIndex: 10,
+  border: "1px solid #ddd",
+  padding: "8px",
+  textAlign: "center",
+};
+
+const cellStyle = {
+  border: "1px solid #ddd",
+  padding: "8px",
+  textAlign: "center",
+  minWidth: "50px",
+};
+
+export default ExpandedCableLengthMatrix;

@@ -1,0 +1,442 @@
+2024-10-23 22:38:31,667 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'KeyError'>, KeyError('window_size'), <traceback object at 0x000002127E829CC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:38:31,667 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'KeyError'>, KeyError('window_size'), <traceback object at 0x000002127E829CC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:38:31,667 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'KeyError'>, KeyError('window_size'), <traceback object at 0x000002127E829CC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:55:36,137 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'KeyError'>, KeyError('window_size'), <traceback object at 0x000001DBD1F18840>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:55:36,137 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'KeyError'>, KeyError('window_size'), <traceback object at 0x000001DBD1F18840>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:55:36,137 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'KeyError'>, KeyError('window_size'), <traceback object at 0x000001DBD1F18840>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:56:15,950 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'KeyError'>, KeyError('window_size'), <traceback object at 0x00000193B5114EC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:56:15,950 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'KeyError'>, KeyError('window_size'), <traceback object at 0x00000193B5114EC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:56:15,950 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'KeyError'>, KeyError('window_size'), <traceback object at 0x00000193B5114EC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 23:00:02,700 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class '_tkinter.TclError'>, TclError('bad window path name ".!toplevel2"'), <traceback object at 0x0000024B4E4543C0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1130, in main
+    settings['window_size'] = window.size
+                              ^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\site-packages\PySimpleGUI\PySimpleGUI.py", line 11828, in size
+    win_width = self.TKroot.winfo_width()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1357, in winfo_width
+    self.tk.call('winfo', 'width', self._w))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: bad window path name ".!toplevel2"
+2024-10-23 23:00:02,700 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class '_tkinter.TclError'>, TclError('bad window path name ".!toplevel2"'), <traceback object at 0x0000024B4E4543C0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1130, in main
+    settings['window_size'] = window.size
+                              ^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\site-packages\PySimpleGUI\PySimpleGUI.py", line 11828, in size
+    win_width = self.TKroot.winfo_width()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1357, in winfo_width
+    self.tk.call('winfo', 'width', self._w))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: bad window path name ".!toplevel2"
+2024-10-23 23:00:02,700 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class '_tkinter.TclError'>, TclError('bad window path name ".!toplevel2"'), <traceback object at 0x0000024B4E4543C0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1130, in main
+    settings['window_size'] = window.size
+                              ^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\site-packages\PySimpleGUI\PySimpleGUI.py", line 11828, in size
+    win_width = self.TKroot.winfo_width()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1357, in winfo_width
+    self.tk.call('winfo', 'width', self._w))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: bad window path name ".!toplevel2"
+2024-10-23 23:06:40,664 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x0000022EBF966FC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1080, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:06:40,664 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x0000022EBF966FC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1080, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:06:40,664 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x0000022EBF966FC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1080, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:08:14,749 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x0000019B8B3D62C0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 112, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 74, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:08:23,253 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x0000019BFFD8B400>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1103, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:08:23,253 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x0000019BFFD8B400>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1103, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:08:23,253 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x0000019BFFD8B400>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1103, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:09:21,774 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x0000023D50070F00>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 115, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 74, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:09:30,287 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x0000023D4DB5C0C0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1106, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:09:30,287 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x0000023D4DB5C0C0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1106, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:09:30,287 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x0000023D4DB5C0C0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1106, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:09:59,291 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x000001A2AAAA8AC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 115, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 74, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:11:05,973 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x000001A734E9FD40>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 117, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:11:14,479 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x000001A733E7F040>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1108, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:11:14,479 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x000001A733E7F040>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1108, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:11:14,479 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x000001A733E7F040>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1108, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:12:21,626 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x00000211EBF10AC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 120, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:12:30,110 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x00000211EECCA240>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:12:30,110 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x00000211EECCA240>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:12:30,110 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x00000211EECCA240>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:14:11,486 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x000001F9CA1BF400>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 120, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:14:20,008 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x000001F9C7D1F500>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:14:20,008 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x000001F9C7D1F500>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:14:20,008 - CableDB - ERROR - An unexpected error occurred in the main function
+(<class 'TypeError'>, TypeError("load_excel_file() missing 1 required positional argument: 'file_path'"), <traceback object at 0x000001F9C7D1F500>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:15:39,482 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x000001A735B27B40>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 120, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:15:39,489 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'KeyError'>, KeyError('last_file_path'), <traceback object at 0x000001A736FCCAC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1140, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1098, in main
+    initial_folder = os.path.dirname(settings['last_file_path']) if settings['last_file_path'] else ''
+                                                                    ~~~~~~~~^^^^^^^^^^^^^^^^^^
+KeyError: 'last_file_path'
+2024-10-23 23:15:39,489 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'KeyError'>, KeyError('last_file_path'), <traceback object at 0x000001A736FCCAC0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1140, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1098, in main
+    initial_folder = os.path.dirname(settings['last_file_path']) if settings['last_file_path'] else ''
+                                                                    ~~~~~~~~^^^^^^^^^^^^^^^^^^
+KeyError: 'last_file_path'
+2024-10-23 23:16:53,121 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x000001D776467700>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 120, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:17:10,302 - CableDB - ERROR - Error loading Excel file: name 'calculate_length_matrix' is not defined
+None
+2024-10-23 23:17:10,302 - CableDB - ERROR - Error loading Excel file: name 'calculate_length_matrix' is not defined
+None
+2024-10-23 23:17:10,307 - CableDB - ERROR - Failed to load data from the Excel file.
+None
+2024-10-23 23:17:10,307 - CableDB - ERROR - Failed to load data from the Excel file.
+None
+2024-10-23 23:19:04,815 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x0000018BC0E210C0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 120, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:19:21,377 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'TypeError'>, TypeError("create_layout() missing 6 required positional arguments: 'df', 'length_matrix_headers', 'add_new_records', 'settings', 'file_path', and 'columns_to_keep'"), <traceback object at 0x0000018BC0AECE40>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1164, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1142, in main
+    layout = create_layout()
+             ^^^^^^^^^^^^^^^
+TypeError: create_layout() missing 6 required positional arguments: 'df', 'length_matrix_headers', 'add_new_records', 'settings', 'file_path', and 'columns_to_keep'
+2024-10-23 23:19:21,377 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'TypeError'>, TypeError("create_layout() missing 6 required positional arguments: 'df', 'length_matrix_headers', 'add_new_records', 'settings', 'file_path', and 'columns_to_keep'"), <traceback object at 0x0000018BC0AECE40>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1164, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1142, in main
+    layout = create_layout()
+             ^^^^^^^^^^^^^^^
+TypeError: create_layout() missing 6 required positional arguments: 'df', 'length_matrix_headers', 'add_new_records', 'settings', 'file_path', and 'columns_to_keep'
+2024-10-23 23:24:16,778 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x000002089C46BE40>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 121, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:27:57,677 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x000002129FA96880>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 121, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:31:09,860 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_settings' is not defined"), <traceback object at 0x0000022582FBE880>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 121, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:40:25,332 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'load_excel_file' is not defined"), <traceback object at 0x00000293D7BFD580>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 132, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 99, in main
+    df, length_matrix = load_excel_file(file_path)
+                        ^^^^^^^^^^^^^^^
+NameError: name 'load_excel_file' is not defined
+2024-10-23 23:48:04,446 - CableDB - CRITICAL - An unhandled exception occurred
+(<class '_tkinter.TclError'>, TclError('bad window path name ".!toplevel2"'), <traceback object at 0x0000013F23167C80>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1155, in <module>
+    # Rest of your main function...
+        ^^^^^^
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1140, in main
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\site-packages\PySimpleGUI\PySimpleGUI.py", line 11828, in size
+    win_width = self.TKroot.winfo_width()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1357, in winfo_width
+    self.tk.call('winfo', 'width', self._w))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: bad window path name ".!toplevel2"
+2024-10-23 23:48:04,446 - CableDB - CRITICAL - An unhandled exception occurred
+(<class '_tkinter.TclError'>, TclError('bad window path name ".!toplevel2"'), <traceback object at 0x0000013F23167C80>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1155, in <module>
+    # Rest of your main function...
+        ^^^^^^
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1140, in main
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\site-packages\PySimpleGUI\PySimpleGUI.py", line 11828, in size
+    win_width = self.TKroot.winfo_width()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1357, in winfo_width
+    self.tk.call('winfo', 'width', self._w))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: bad window path name ".!toplevel2"
+2024-10-23 23:50:30,399 - CableDB - ERROR - Error creating layout: name 'create_layout' is not defined
+(<class 'NameError'>, NameError("name 'create_layout' is not defined"), <traceback object at 0x0000018360D5A2C0>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 150, in main
+    layout = create_layout(df, length_matrix_headers, add_new_records, settings, file_path, columns_to_keep)
+             ^^^^^^^^^^^^^
+NameError: name 'create_layout' is not defined
+2024-10-24 00:06:02,914 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'file_path' is not defined"), <traceback object at 0x000001D5B226AA80>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_layout creator freeze.py", line 154, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_layout creator freeze.py", line 127, in main
+    df, length_matrix = load_excel_file(file_path)
+                                        ^^^^^^^^^
+NameError: name 'file_path' is not defined
+2024-10-24 00:06:02,919 - CableDB - CRITICAL - An unhandled exception occurred
+(<class 'NameError'>, NameError("name 'file_path' is not defined"), <traceback object at 0x000001D5B226A980>)
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_layout creator freeze.py", line 1078, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_layout creator freeze.py", line 1051, in main
+    df, length_matrix = load_excel_file(file_path)
+                                        ^^^^^^^^^
+NameError: name 'file_path' is not defined

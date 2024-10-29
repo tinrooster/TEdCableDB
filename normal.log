@@ -1,0 +1,928 @@
+2024-10-23 22:38:14,717 - CableDB - INFO - Logging setup complete
+2024-10-23 22:38:14,717 - CableDB - INFO - ==================================================
+2024-10-23 22:38:14,718 - CableDB - INFO - Script started
+2024-10-23 22:38:14,718 - CableDB - INFO - ==================================================
+2024-10-23 22:38:14,718 - CableDB - INFO - ==================================================
+2024-10-23 22:38:14,718 - CableDB - INFO - Script completed
+2024-10-23 22:38:14,718 - CableDB - INFO - ==================================================
+2024-10-23 22:38:14,719 - CableDB - INFO - ==================================================
+2024-10-23 22:38:14,719 - CableDB - INFO - ==================================================
+2024-10-23 22:38:14,719 - CableDB - INFO - ==================================================
+2024-10-23 22:38:14,720 - CableDB - INFO - Script started
+2024-10-23 22:38:14,720 - CableDB - INFO - Script started
+2024-10-23 22:38:14,720 - CableDB - INFO - Script started
+2024-10-23 22:38:14,720 - CableDB - INFO - ==================================================
+2024-10-23 22:38:14,720 - CableDB - INFO - ==================================================
+2024-10-23 22:38:14,720 - CableDB - INFO - ==================================================
+2024-10-23 22:38:23,356 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:38:23,356 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:38:23,356 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:38:23,356 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:38:23,356 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:38:23,356 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:38:31,594 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:38:31,594 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:38:31,594 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:38:31,628 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:38:31,628 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:38:31,628 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:38:31,635 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:38:31,635 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:38:31,635 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:38:31,635 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:38:31,635 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:38:31,635 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:38:31,636 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:38:31,636 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:38:31,636 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:38:31,637 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:38:31,637 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:38:31,637 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:38:31,667 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:38:31,667 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:38:31,667 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:55:19,388 - CableDB - INFO - Logging setup complete
+2024-10-23 22:55:19,388 - CableDB - INFO - ==================================================
+2024-10-23 22:55:19,388 - CableDB - INFO - Script started
+2024-10-23 22:55:19,388 - CableDB - INFO - ==================================================
+2024-10-23 22:55:19,388 - CableDB - INFO - ==================================================
+2024-10-23 22:55:19,389 - CableDB - INFO - Script completed
+2024-10-23 22:55:19,389 - CableDB - INFO - ==================================================
+2024-10-23 22:55:19,390 - CableDB - INFO - ==================================================
+2024-10-23 22:55:19,390 - CableDB - INFO - ==================================================
+2024-10-23 22:55:19,390 - CableDB - INFO - ==================================================
+2024-10-23 22:55:19,390 - CableDB - INFO - Script started
+2024-10-23 22:55:19,390 - CableDB - INFO - Script started
+2024-10-23 22:55:19,390 - CableDB - INFO - Script started
+2024-10-23 22:55:19,390 - CableDB - INFO - ==================================================
+2024-10-23 22:55:19,390 - CableDB - INFO - ==================================================
+2024-10-23 22:55:19,390 - CableDB - INFO - ==================================================
+2024-10-23 22:55:27,891 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:55:27,891 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:55:27,891 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:55:27,891 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:55:27,891 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:55:27,891 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:55:36,056 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:55:36,056 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:55:36,056 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:55:36,093 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:55:36,093 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:55:36,093 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:55:36,101 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:55:36,101 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:55:36,101 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:55:36,102 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:55:36,102 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:55:36,102 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:55:36,102 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:55:36,102 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:55:36,102 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:55:36,104 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:55:36,104 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:55:36,104 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:55:36,137 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:55:36,137 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:55:36,137 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:55:54,011 - CableDB - INFO - ==================================================
+2024-10-23 22:55:54,011 - CableDB - INFO - ==================================================
+2024-10-23 22:55:54,011 - CableDB - INFO - ==================================================
+2024-10-23 22:55:54,011 - CableDB - INFO - Script completed
+2024-10-23 22:55:54,011 - CableDB - INFO - Script completed
+2024-10-23 22:55:54,011 - CableDB - INFO - Script completed
+2024-10-23 22:55:54,012 - CableDB - INFO - ==================================================
+2024-10-23 22:55:54,012 - CableDB - INFO - ==================================================
+2024-10-23 22:55:54,012 - CableDB - INFO - ==================================================
+2024-10-23 22:55:59,461 - CableDB - INFO - Logging setup complete
+2024-10-23 22:55:59,461 - CableDB - INFO - ==================================================
+2024-10-23 22:55:59,461 - CableDB - INFO - Script started
+2024-10-23 22:55:59,461 - CableDB - INFO - ==================================================
+2024-10-23 22:55:59,461 - CableDB - INFO - ==================================================
+2024-10-23 22:55:59,461 - CableDB - INFO - Script completed
+2024-10-23 22:55:59,461 - CableDB - INFO - ==================================================
+2024-10-23 22:55:59,462 - CableDB - INFO - ==================================================
+2024-10-23 22:55:59,462 - CableDB - INFO - ==================================================
+2024-10-23 22:55:59,462 - CableDB - INFO - ==================================================
+2024-10-23 22:55:59,462 - CableDB - INFO - Script started
+2024-10-23 22:55:59,462 - CableDB - INFO - Script started
+2024-10-23 22:55:59,462 - CableDB - INFO - Script started
+2024-10-23 22:55:59,463 - CableDB - INFO - ==================================================
+2024-10-23 22:55:59,463 - CableDB - INFO - ==================================================
+2024-10-23 22:55:59,463 - CableDB - INFO - ==================================================
+2024-10-23 22:56:07,959 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:56:07,959 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:56:07,959 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:56:07,959 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:56:07,959 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:56:07,959 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:56:15,869 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:56:15,869 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:56:15,869 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:56:15,907 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:56:15,907 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:56:15,907 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:56:15,915 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:56:15,915 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:56:15,915 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:56:15,915 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:56:15,915 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:56:15,915 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:56:15,915 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:56:15,915 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:56:15,915 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:56:15,917 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:56:15,917 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:56:15,917 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:56:15,950 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:56:15,950 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:56:15,950 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1120, in main
+    size=settings['window_size'], location=settings['window_location'])
+         ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'window_size'
+2024-10-23 22:58:35,024 - CableDB - INFO - Logging setup complete
+2024-10-23 22:58:35,024 - CableDB - INFO - ==================================================
+2024-10-23 22:58:35,024 - CableDB - INFO - Script started
+2024-10-23 22:58:35,024 - CableDB - INFO - ==================================================
+2024-10-23 22:58:35,024 - CableDB - INFO - ==================================================
+2024-10-23 22:58:35,024 - CableDB - INFO - Script completed
+2024-10-23 22:58:35,024 - CableDB - INFO - ==================================================
+2024-10-23 22:58:35,026 - CableDB - INFO - ==================================================
+2024-10-23 22:58:35,026 - CableDB - INFO - ==================================================
+2024-10-23 22:58:35,026 - CableDB - INFO - ==================================================
+2024-10-23 22:58:35,026 - CableDB - INFO - Script started
+2024-10-23 22:58:35,026 - CableDB - INFO - Script started
+2024-10-23 22:58:35,026 - CableDB - INFO - Script started
+2024-10-23 22:58:35,026 - CableDB - INFO - ==================================================
+2024-10-23 22:58:35,026 - CableDB - INFO - ==================================================
+2024-10-23 22:58:35,026 - CableDB - INFO - ==================================================
+2024-10-23 22:58:43,572 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:58:43,572 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:58:43,572 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 22:58:43,573 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:58:43,573 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:58:43,573 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 22:58:52,543 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:58:52,543 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:58:52,543 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 22:58:52,577 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:58:52,577 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:58:52,577 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 22:58:52,585 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:58:52,585 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:58:52,585 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 22:58:52,585 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:58:52,585 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:58:52,585 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 22:58:52,585 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:58:52,585 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:58:52,585 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 22:58:52,587 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:58:52,587 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 22:58:52,587 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 23:00:02,700 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1130, in main
+    settings['window_size'] = window.size
+                              ^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\site-packages\PySimpleGUI\PySimpleGUI.py", line 11828, in size
+    win_width = self.TKroot.winfo_width()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1357, in winfo_width
+    self.tk.call('winfo', 'width', self._w))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: bad window path name ".!toplevel2"
+2024-10-23 23:00:02,700 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1130, in main
+    settings['window_size'] = window.size
+                              ^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\site-packages\PySimpleGUI\PySimpleGUI.py", line 11828, in size
+    win_width = self.TKroot.winfo_width()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1357, in winfo_width
+    self.tk.call('winfo', 'width', self._w))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: bad window path name ".!toplevel2"
+2024-10-23 23:00:02,700 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1130, in main
+    settings['window_size'] = window.size
+                              ^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\site-packages\PySimpleGUI\PySimpleGUI.py", line 11828, in size
+    win_width = self.TKroot.winfo_width()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1357, in winfo_width
+    self.tk.call('winfo', 'width', self._w))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: bad window path name ".!toplevel2"
+2024-10-23 23:04:08,273 - CableDB - INFO - Logging setup complete
+2024-10-23 23:04:08,273 - CableDB - INFO - ==================================================
+2024-10-23 23:04:08,273 - CableDB - INFO - Script started
+2024-10-23 23:04:08,273 - CableDB - INFO - ==================================================
+2024-10-23 23:04:08,273 - CableDB - INFO - ==================================================
+2024-10-23 23:04:08,273 - CableDB - INFO - Script completed
+2024-10-23 23:04:08,273 - CableDB - INFO - ==================================================
+2024-10-23 23:04:08,275 - CableDB - INFO - ==================================================
+2024-10-23 23:04:08,275 - CableDB - INFO - ==================================================
+2024-10-23 23:04:08,275 - CableDB - INFO - ==================================================
+2024-10-23 23:04:08,275 - CableDB - INFO - Script started
+2024-10-23 23:04:08,275 - CableDB - INFO - Script started
+2024-10-23 23:04:08,275 - CableDB - INFO - Script started
+2024-10-23 23:04:08,275 - CableDB - INFO - ==================================================
+2024-10-23 23:04:08,275 - CableDB - INFO - ==================================================
+2024-10-23 23:04:08,275 - CableDB - INFO - ==================================================
+2024-10-23 23:04:16,866 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:04:16,866 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:04:16,866 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:04:16,867 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:04:16,867 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:04:16,867 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:04:24,745 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 23:04:24,745 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 23:04:24,745 - CableDB - INFO - Columns in the Excel file: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 23:04:24,777 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 23:04:24,777 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 23:04:24,777 - CableDB - WARNING - Warning: Neither 'ProjectID' nor 'Project ID' column found in the Excel file.
+2024-10-23 23:04:24,783 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 23:04:24,783 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 23:04:24,783 - CableDB - INFO - Data cleaned and loaded successfully
+2024-10-23 23:04:24,784 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 23:04:24,784 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 23:04:24,784 - CableDB - INFO - Final shape of df: (45763, 8)
+2024-10-23 23:04:24,784 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 23:04:24,784 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 23:04:24,784 - CableDB - INFO - Columns in df: ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note']
+2024-10-23 23:04:24,785 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 23:04:24,785 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 23:04:24,785 - CableDB - INFO - df shape: (45763, 8), length_matrix shape: (106, 107)
+2024-10-23 23:06:32,180 - CableDB - INFO - Logging setup complete
+2024-10-23 23:06:32,180 - CableDB - INFO - ==================================================
+2024-10-23 23:06:32,181 - CableDB - INFO - Script started
+2024-10-23 23:06:32,181 - CableDB - INFO - ==================================================
+2024-10-23 23:06:32,181 - CableDB - INFO - ==================================================
+2024-10-23 23:06:32,181 - CableDB - INFO - Script completed
+2024-10-23 23:06:32,181 - CableDB - INFO - ==================================================
+2024-10-23 23:06:32,182 - CableDB - INFO - ==================================================
+2024-10-23 23:06:32,182 - CableDB - INFO - ==================================================
+2024-10-23 23:06:32,182 - CableDB - INFO - ==================================================
+2024-10-23 23:06:32,182 - CableDB - INFO - Script started
+2024-10-23 23:06:32,182 - CableDB - INFO - Script started
+2024-10-23 23:06:32,182 - CableDB - INFO - Script started
+2024-10-23 23:06:32,183 - CableDB - INFO - ==================================================
+2024-10-23 23:06:32,183 - CableDB - INFO - ==================================================
+2024-10-23 23:06:32,183 - CableDB - INFO - ==================================================
+2024-10-23 23:06:40,664 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1080, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:06:40,664 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1080, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:06:40,664 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1080, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:06:45,518 - CableDB - INFO - ==================================================
+2024-10-23 23:06:45,518 - CableDB - INFO - ==================================================
+2024-10-23 23:06:45,518 - CableDB - INFO - ==================================================
+2024-10-23 23:06:45,519 - CableDB - INFO - Script completed
+2024-10-23 23:06:45,519 - CableDB - INFO - Script completed
+2024-10-23 23:06:45,519 - CableDB - INFO - Script completed
+2024-10-23 23:06:45,519 - CableDB - INFO - ==================================================
+2024-10-23 23:06:45,519 - CableDB - INFO - ==================================================
+2024-10-23 23:06:45,519 - CableDB - INFO - ==================================================
+2024-10-23 23:08:14,748 - CableDB - INFO - Logging setup complete
+2024-10-23 23:08:14,748 - CableDB - INFO - ==================================================
+2024-10-23 23:08:14,749 - CableDB - INFO - Script started
+2024-10-23 23:08:14,749 - CableDB - INFO - ==================================================
+2024-10-23 23:08:14,749 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 112, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 74, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:08:14,756 - CableDB - INFO - ==================================================
+2024-10-23 23:08:14,756 - CableDB - INFO - ==================================================
+2024-10-23 23:08:14,756 - CableDB - INFO - ==================================================
+2024-10-23 23:08:14,756 - CableDB - INFO - Script started
+2024-10-23 23:08:14,756 - CableDB - INFO - Script started
+2024-10-23 23:08:14,756 - CableDB - INFO - Script started
+2024-10-23 23:08:14,756 - CableDB - INFO - ==================================================
+2024-10-23 23:08:14,756 - CableDB - INFO - ==================================================
+2024-10-23 23:08:14,756 - CableDB - INFO - ==================================================
+2024-10-23 23:08:23,253 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1103, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:08:23,253 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1103, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:08:23,253 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1103, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:08:27,957 - CableDB - INFO - ==================================================
+2024-10-23 23:08:27,957 - CableDB - INFO - ==================================================
+2024-10-23 23:08:27,957 - CableDB - INFO - ==================================================
+2024-10-23 23:08:27,957 - CableDB - INFO - Script completed
+2024-10-23 23:08:27,957 - CableDB - INFO - Script completed
+2024-10-23 23:08:27,957 - CableDB - INFO - Script completed
+2024-10-23 23:08:27,957 - CableDB - INFO - ==================================================
+2024-10-23 23:08:27,957 - CableDB - INFO - ==================================================
+2024-10-23 23:08:27,957 - CableDB - INFO - ==================================================
+2024-10-23 23:09:21,774 - CableDB - INFO - Logging setup complete
+2024-10-23 23:09:21,774 - CableDB - INFO - ==================================================
+2024-10-23 23:09:21,774 - CableDB - INFO - Script started
+2024-10-23 23:09:21,774 - CableDB - INFO - ==================================================
+2024-10-23 23:09:21,774 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 115, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 74, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:09:21,780 - CableDB - INFO - ==================================================
+2024-10-23 23:09:21,780 - CableDB - INFO - ==================================================
+2024-10-23 23:09:21,780 - CableDB - INFO - ==================================================
+2024-10-23 23:09:21,780 - CableDB - INFO - Script started
+2024-10-23 23:09:21,780 - CableDB - INFO - Script started
+2024-10-23 23:09:21,780 - CableDB - INFO - Script started
+2024-10-23 23:09:21,780 - CableDB - INFO - ==================================================
+2024-10-23 23:09:21,780 - CableDB - INFO - ==================================================
+2024-10-23 23:09:21,780 - CableDB - INFO - ==================================================
+2024-10-23 23:09:30,287 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1106, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:09:30,287 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1106, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:09:30,287 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1106, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:09:32,888 - CableDB - INFO - ==================================================
+2024-10-23 23:09:32,888 - CableDB - INFO - ==================================================
+2024-10-23 23:09:32,888 - CableDB - INFO - ==================================================
+2024-10-23 23:09:32,888 - CableDB - INFO - Script completed
+2024-10-23 23:09:32,888 - CableDB - INFO - Script completed
+2024-10-23 23:09:32,888 - CableDB - INFO - Script completed
+2024-10-23 23:09:32,888 - CableDB - INFO - ==================================================
+2024-10-23 23:09:32,888 - CableDB - INFO - ==================================================
+2024-10-23 23:09:32,888 - CableDB - INFO - ==================================================
+2024-10-23 23:09:59,290 - CableDB - INFO - Logging setup complete
+2024-10-23 23:09:59,290 - CableDB - INFO - ==================================================
+2024-10-23 23:09:59,290 - CableDB - INFO - Script started
+2024-10-23 23:09:59,290 - CableDB - INFO - ==================================================
+2024-10-23 23:09:59,291 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 115, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 74, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:09:59,298 - CableDB - INFO - ==================================================
+2024-10-23 23:09:59,298 - CableDB - INFO - ==================================================
+2024-10-23 23:09:59,298 - CableDB - INFO - ==================================================
+2024-10-23 23:09:59,298 - CableDB - INFO - Script started
+2024-10-23 23:09:59,298 - CableDB - INFO - Script started
+2024-10-23 23:09:59,298 - CableDB - INFO - Script started
+2024-10-23 23:09:59,298 - CableDB - INFO - ==================================================
+2024-10-23 23:09:59,298 - CableDB - INFO - ==================================================
+2024-10-23 23:09:59,298 - CableDB - INFO - ==================================================
+2024-10-23 23:11:05,973 - CableDB - INFO - Logging setup complete
+2024-10-23 23:11:05,973 - CableDB - INFO - ==================================================
+2024-10-23 23:11:05,973 - CableDB - INFO - Script started
+2024-10-23 23:11:05,973 - CableDB - INFO - ==================================================
+2024-10-23 23:11:05,973 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 117, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:11:05,979 - CableDB - INFO - ==================================================
+2024-10-23 23:11:05,979 - CableDB - INFO - ==================================================
+2024-10-23 23:11:05,979 - CableDB - INFO - ==================================================
+2024-10-23 23:11:05,979 - CableDB - INFO - Script started
+2024-10-23 23:11:05,979 - CableDB - INFO - Script started
+2024-10-23 23:11:05,979 - CableDB - INFO - Script started
+2024-10-23 23:11:05,980 - CableDB - INFO - ==================================================
+2024-10-23 23:11:05,980 - CableDB - INFO - ==================================================
+2024-10-23 23:11:05,980 - CableDB - INFO - ==================================================
+2024-10-23 23:11:14,479 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1108, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:11:14,479 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1108, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:11:14,479 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1108, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:11:17,057 - CableDB - INFO - ==================================================
+2024-10-23 23:11:17,057 - CableDB - INFO - ==================================================
+2024-10-23 23:11:17,057 - CableDB - INFO - ==================================================
+2024-10-23 23:11:17,057 - CableDB - INFO - Script completed
+2024-10-23 23:11:17,057 - CableDB - INFO - Script completed
+2024-10-23 23:11:17,057 - CableDB - INFO - Script completed
+2024-10-23 23:11:17,058 - CableDB - INFO - ==================================================
+2024-10-23 23:11:17,058 - CableDB - INFO - ==================================================
+2024-10-23 23:11:17,058 - CableDB - INFO - ==================================================
+2024-10-23 23:12:21,625 - CableDB - INFO - Logging setup complete
+2024-10-23 23:12:21,626 - CableDB - INFO - ==================================================
+2024-10-23 23:12:21,626 - CableDB - INFO - Script started
+2024-10-23 23:12:21,626 - CableDB - INFO - ==================================================
+2024-10-23 23:12:21,626 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 120, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:12:21,632 - CableDB - INFO - ==================================================
+2024-10-23 23:12:21,632 - CableDB - INFO - ==================================================
+2024-10-23 23:12:21,632 - CableDB - INFO - ==================================================
+2024-10-23 23:12:21,632 - CableDB - INFO - Script started
+2024-10-23 23:12:21,632 - CableDB - INFO - Script started
+2024-10-23 23:12:21,632 - CableDB - INFO - Script started
+2024-10-23 23:12:21,632 - CableDB - INFO - ==================================================
+2024-10-23 23:12:21,632 - CableDB - INFO - ==================================================
+2024-10-23 23:12:21,632 - CableDB - INFO - ==================================================
+2024-10-23 23:12:30,110 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:12:30,110 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:12:30,110 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:12:32,072 - CableDB - INFO - ==================================================
+2024-10-23 23:12:32,072 - CableDB - INFO - ==================================================
+2024-10-23 23:12:32,072 - CableDB - INFO - ==================================================
+2024-10-23 23:12:32,072 - CableDB - INFO - Script completed
+2024-10-23 23:12:32,072 - CableDB - INFO - Script completed
+2024-10-23 23:12:32,072 - CableDB - INFO - Script completed
+2024-10-23 23:12:32,073 - CableDB - INFO - ==================================================
+2024-10-23 23:12:32,073 - CableDB - INFO - ==================================================
+2024-10-23 23:12:32,073 - CableDB - INFO - ==================================================
+2024-10-23 23:14:11,485 - CableDB - INFO - Logging setup complete
+2024-10-23 23:14:11,485 - CableDB - INFO - ==================================================
+2024-10-23 23:14:11,485 - CableDB - INFO - Script started
+2024-10-23 23:14:11,485 - CableDB - INFO - ==================================================
+2024-10-23 23:14:11,486 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 120, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:14:11,491 - CableDB - INFO - ==================================================
+2024-10-23 23:14:11,491 - CableDB - INFO - ==================================================
+2024-10-23 23:14:11,491 - CableDB - INFO - ==================================================
+2024-10-23 23:14:11,491 - CableDB - INFO - Script started
+2024-10-23 23:14:11,491 - CableDB - INFO - Script started
+2024-10-23 23:14:11,491 - CableDB - INFO - Script started
+2024-10-23 23:14:11,492 - CableDB - INFO - ==================================================
+2024-10-23 23:14:11,492 - CableDB - INFO - ==================================================
+2024-10-23 23:14:11,492 - CableDB - INFO - ==================================================
+2024-10-23 23:14:20,008 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:14:20,008 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:14:20,008 - CableDB - ERROR - An unexpected error occurred in the main function
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1111, in main
+    df, length_matrix, file_path, columns_to_keep = load_excel_file()
+                                                    ^^^^^^^^^^^^^^^^^
+TypeError: load_excel_file() missing 1 required positional argument: 'file_path'
+2024-10-23 23:14:22,643 - CableDB - INFO - ==================================================
+2024-10-23 23:14:22,643 - CableDB - INFO - ==================================================
+2024-10-23 23:14:22,643 - CableDB - INFO - ==================================================
+2024-10-23 23:14:22,643 - CableDB - INFO - Script completed
+2024-10-23 23:14:22,643 - CableDB - INFO - Script completed
+2024-10-23 23:14:22,643 - CableDB - INFO - Script completed
+2024-10-23 23:14:22,644 - CableDB - INFO - ==================================================
+2024-10-23 23:14:22,644 - CableDB - INFO - ==================================================
+2024-10-23 23:14:22,644 - CableDB - INFO - ==================================================
+2024-10-23 23:15:39,481 - CableDB - INFO - Logging setup complete
+2024-10-23 23:15:39,481 - CableDB - INFO - ==================================================
+2024-10-23 23:15:39,481 - CableDB - INFO - Script started
+2024-10-23 23:15:39,482 - CableDB - INFO - ==================================================
+2024-10-23 23:15:39,482 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 120, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:15:39,488 - CableDB - INFO - ==================================================
+2024-10-23 23:15:39,488 - CableDB - INFO - ==================================================
+2024-10-23 23:15:39,488 - CableDB - INFO - Script started
+2024-10-23 23:15:39,488 - CableDB - INFO - Script started
+2024-10-23 23:15:39,489 - CableDB - INFO - ==================================================
+2024-10-23 23:15:39,489 - CableDB - INFO - ==================================================
+2024-10-23 23:15:39,489 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1140, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1098, in main
+    initial_folder = os.path.dirname(settings['last_file_path']) if settings['last_file_path'] else ''
+                                                                    ~~~~~~~~^^^^^^^^^^^^^^^^^^
+KeyError: 'last_file_path'
+2024-10-23 23:15:39,489 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1140, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1098, in main
+    initial_folder = os.path.dirname(settings['last_file_path']) if settings['last_file_path'] else ''
+                                                                    ~~~~~~~~^^^^^^^^^^^^^^^^^^
+KeyError: 'last_file_path'
+2024-10-23 23:16:53,120 - CableDB - INFO - Logging setup complete
+2024-10-23 23:16:53,121 - CableDB - INFO - ==================================================
+2024-10-23 23:16:53,121 - CableDB - INFO - Script started
+2024-10-23 23:16:53,121 - CableDB - INFO - ==================================================
+2024-10-23 23:16:53,121 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 120, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:16:53,128 - CableDB - INFO - ==================================================
+2024-10-23 23:16:53,128 - CableDB - INFO - ==================================================
+2024-10-23 23:16:53,128 - CableDB - INFO - Script started
+2024-10-23 23:16:53,128 - CableDB - INFO - Script started
+2024-10-23 23:16:53,128 - CableDB - INFO - ==================================================
+2024-10-23 23:16:53,128 - CableDB - INFO - ==================================================
+2024-10-23 23:17:03,247 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:17:03,247 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:17:03,247 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:17:03,247 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:17:10,302 - CableDB - ERROR - Error loading Excel file: name 'calculate_length_matrix' is not defined
+2024-10-23 23:17:10,302 - CableDB - ERROR - Error loading Excel file: name 'calculate_length_matrix' is not defined
+2024-10-23 23:17:10,307 - CableDB - ERROR - Failed to load data from the Excel file.
+2024-10-23 23:17:10,307 - CableDB - ERROR - Failed to load data from the Excel file.
+2024-10-23 23:19:04,814 - CableDB - INFO - Logging setup complete
+2024-10-23 23:19:04,814 - CableDB - INFO - ==================================================
+2024-10-23 23:19:04,815 - CableDB - INFO - Script started
+2024-10-23 23:19:04,815 - CableDB - INFO - ==================================================
+2024-10-23 23:19:04,815 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 120, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:19:04,821 - CableDB - INFO - ==================================================
+2024-10-23 23:19:04,821 - CableDB - INFO - ==================================================
+2024-10-23 23:19:04,822 - CableDB - INFO - Script started
+2024-10-23 23:19:04,822 - CableDB - INFO - Script started
+2024-10-23 23:19:04,822 - CableDB - INFO - ==================================================
+2024-10-23 23:19:04,822 - CableDB - INFO - ==================================================
+2024-10-23 23:19:14,183 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:19:14,183 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:19:14,183 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:19:14,183 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:19:21,377 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1164, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1142, in main
+    layout = create_layout()
+             ^^^^^^^^^^^^^^^
+TypeError: create_layout() missing 6 required positional arguments: 'df', 'length_matrix_headers', 'add_new_records', 'settings', 'file_path', and 'columns_to_keep'
+2024-10-23 23:19:21,377 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1164, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1142, in main
+    layout = create_layout()
+             ^^^^^^^^^^^^^^^
+TypeError: create_layout() missing 6 required positional arguments: 'df', 'length_matrix_headers', 'add_new_records', 'settings', 'file_path', and 'columns_to_keep'
+2024-10-23 23:24:16,778 - CableDB - INFO - Logging setup complete
+2024-10-23 23:24:16,778 - CableDB - INFO - ==================================================
+2024-10-23 23:24:16,778 - CableDB - INFO - Script started
+2024-10-23 23:24:16,778 - CableDB - INFO - ==================================================
+2024-10-23 23:24:16,778 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 121, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:24:16,802 - CableDB - INFO - ==================================================
+2024-10-23 23:24:16,802 - CableDB - INFO - ==================================================
+2024-10-23 23:24:16,802 - CableDB - INFO - Script started
+2024-10-23 23:24:16,802 - CableDB - INFO - Script started
+2024-10-23 23:24:16,802 - CableDB - INFO - ==================================================
+2024-10-23 23:24:16,802 - CableDB - INFO - ==================================================
+2024-10-23 23:24:27,018 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:24:27,018 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:24:27,018 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:24:27,018 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:27:57,676 - CableDB - INFO - Logging setup complete
+2024-10-23 23:27:57,676 - CableDB - INFO - ==================================================
+2024-10-23 23:27:57,677 - CableDB - INFO - Script started
+2024-10-23 23:27:57,677 - CableDB - INFO - ==================================================
+2024-10-23 23:27:57,677 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 121, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:27:57,682 - CableDB - INFO - ==================================================
+2024-10-23 23:27:57,682 - CableDB - INFO - ==================================================
+2024-10-23 23:27:57,682 - CableDB - INFO - Script started
+2024-10-23 23:27:57,682 - CableDB - INFO - Script started
+2024-10-23 23:27:57,683 - CableDB - INFO - ==================================================
+2024-10-23 23:27:57,683 - CableDB - INFO - ==================================================
+2024-10-23 23:28:06,641 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:28:06,641 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:28:06,641 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:28:06,641 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:31:09,859 - CableDB - INFO - Logging setup complete
+2024-10-23 23:31:09,860 - CableDB - INFO - ==================================================
+2024-10-23 23:31:09,860 - CableDB - INFO - Script started
+2024-10-23 23:31:09,860 - CableDB - INFO - ==================================================
+2024-10-23 23:31:09,860 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 121, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 76, in main
+    settings = load_settings()
+               ^^^^^^^^^^^^^
+NameError: name 'load_settings' is not defined
+2024-10-23 23:31:09,866 - CableDB - INFO - ==================================================
+2024-10-23 23:31:09,866 - CableDB - INFO - ==================================================
+2024-10-23 23:31:09,866 - CableDB - INFO - Script started
+2024-10-23 23:31:09,866 - CableDB - INFO - Script started
+2024-10-23 23:31:09,866 - CableDB - INFO - ==================================================
+2024-10-23 23:31:09,866 - CableDB - INFO - ==================================================
+2024-10-23 23:31:17,937 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:31:17,937 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:31:17,937 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:31:17,937 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:40:16,612 - CableDB - INFO - Logging setup complete
+2024-10-23 23:40:16,612 - CableDB - INFO - ==================================================
+2024-10-23 23:40:16,612 - CableDB - INFO - Script started
+2024-10-23 23:40:16,612 - CableDB - INFO - ==================================================
+2024-10-23 23:40:25,332 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 132, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 99, in main
+    df, length_matrix = load_excel_file(file_path)
+                        ^^^^^^^^^^^^^^^
+NameError: name 'load_excel_file' is not defined
+2024-10-23 23:40:25,340 - CableDB - INFO - ==================================================
+2024-10-23 23:40:25,340 - CableDB - INFO - ==================================================
+2024-10-23 23:40:25,340 - CableDB - INFO - Script started
+2024-10-23 23:40:25,340 - CableDB - INFO - Script started
+2024-10-23 23:40:25,340 - CableDB - INFO - ==================================================
+2024-10-23 23:40:25,340 - CableDB - INFO - ==================================================
+2024-10-23 23:40:28,026 - CableDB - INFO - No file selected. Exiting.
+2024-10-23 23:40:28,026 - CableDB - INFO - No file selected. Exiting.
+2024-10-23 23:43:18,112 - CableDB - INFO - Logging setup complete
+2024-10-23 23:43:18,112 - CableDB - INFO - ==================================================
+2024-10-23 23:43:18,112 - CableDB - INFO - Script started
+2024-10-23 23:43:18,112 - CableDB - INFO - ==================================================
+2024-10-23 23:43:18,113 - CableDB - INFO - ==================================================
+2024-10-23 23:43:18,113 - CableDB - INFO - ==================================================
+2024-10-23 23:43:18,114 - CableDB - INFO - Script started
+2024-10-23 23:43:18,114 - CableDB - INFO - Script started
+2024-10-23 23:43:18,114 - CableDB - INFO - ==================================================
+2024-10-23 23:43:18,114 - CableDB - INFO - ==================================================
+2024-10-23 23:43:25,007 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:43:25,007 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:43:25,007 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:43:25,007 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:46:03,716 - CableDB - INFO - Logging setup complete
+2024-10-23 23:46:03,717 - CableDB - INFO - ==================================================
+2024-10-23 23:46:03,717 - CableDB - INFO - Script started
+2024-10-23 23:46:03,717 - CableDB - INFO - ==================================================
+2024-10-23 23:46:03,718 - CableDB - INFO - ==================================================
+2024-10-23 23:46:03,718 - CableDB - INFO - ==================================================
+2024-10-23 23:46:03,718 - CableDB - INFO - Script started
+2024-10-23 23:46:03,718 - CableDB - INFO - Script started
+2024-10-23 23:46:03,719 - CableDB - INFO - ==================================================
+2024-10-23 23:46:03,719 - CableDB - INFO - ==================================================
+2024-10-23 23:46:15,233 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:46:15,233 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:46:15,233 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:46:15,233 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:48:04,446 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1155, in <module>
+    # Rest of your main function...
+        ^^^^^^
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1140, in main
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\site-packages\PySimpleGUI\PySimpleGUI.py", line 11828, in size
+    win_width = self.TKroot.winfo_width()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1357, in winfo_width
+    self.tk.call('winfo', 'width', self._w))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: bad window path name ".!toplevel2"
+2024-10-23 23:48:04,446 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1155, in <module>
+    # Rest of your main function...
+        ^^^^^^
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 1140, in main
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\site-packages\PySimpleGUI\PySimpleGUI.py", line 11828, in size
+    win_width = self.TKroot.winfo_width()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HAYA008\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1357, in winfo_width
+    self.tk.call('winfo', 'width', self._w))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: bad window path name ".!toplevel2"
+2024-10-23 23:48:08,501 - CableDB - INFO - Logging setup complete
+2024-10-23 23:48:08,502 - CableDB - INFO - ==================================================
+2024-10-23 23:48:08,502 - CableDB - INFO - Script started
+2024-10-23 23:48:08,502 - CableDB - INFO - ==================================================
+2024-10-23 23:48:08,503 - CableDB - INFO - ==================================================
+2024-10-23 23:48:08,503 - CableDB - INFO - ==================================================
+2024-10-23 23:48:08,503 - CableDB - INFO - Script started
+2024-10-23 23:48:08,503 - CableDB - INFO - Script started
+2024-10-23 23:48:08,503 - CableDB - INFO - ==================================================
+2024-10-23 23:48:08,503 - CableDB - INFO - ==================================================
+2024-10-23 23:48:11,191 - CableDB - INFO - No file selected. Exiting.
+2024-10-23 23:48:11,191 - CableDB - INFO - No file selected. Exiting.
+2024-10-23 23:50:15,465 - CableDB - INFO - Logging setup complete
+2024-10-23 23:50:15,465 - CableDB - INFO - ==================================================
+2024-10-23 23:50:15,465 - CableDB - INFO - Script started
+2024-10-23 23:50:15,465 - CableDB - INFO - ==================================================
+2024-10-23 23:50:15,466 - CableDB - INFO - Settings loaded successfully
+2024-10-23 23:50:22,159 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:50:22,159 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:50:22,159 - CableDB - INFO - Reading CableList sheet
+2024-10-23 23:50:29,590 - CableDB - INFO - CableList sheet loaded. Shape: (45764, 21)
+2024-10-23 23:50:29,590 - CableDB - INFO - Reading LengthMatrix sheet
+2024-10-23 23:50:30,398 - CableDB - INFO - LengthMatrix sheet loaded. Shape: (106, 107)
+2024-10-23 23:50:30,398 - CableDB - INFO - Excel file loaded successfully
+2024-10-23 23:50:30,399 - CableDB - INFO - DataFrame loaded successfully. Shape: (45764, 21)
+2024-10-23 23:50:30,399 - CableDB - INFO - Length matrix loaded successfully. Shape: (106, 107)
+2024-10-23 23:50:30,399 - CableDB - INFO - Columns to keep: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 23:50:30,399 - CableDB - INFO - Length matrix headers: ['TK01', 'TK02', 'TK03', 'TK04', 'TK05', 'TK06', 'TK07', 'TK08', 'TK09', 'TK10', 'TJ01', 'TJ02', 'TJ03', 'TJ04', 'TJ05', 'TJ06', 'TJ07', 'TJ08', 'TJ09', 'TJ10', 'TH01', 'TH02', 'TH03', 'TH04', 'TH05', 'TH06', 'TH07', 'TH08', 'TH09', 'TH10', 'TH11', 'TG01', 'TG2', 'TG03', 'TG04', 'TG05', 'TG06', 'TG07', 'TG08', 'TG09', 'TG10', 'TG11', 'TG12', 'TF01', 'TF02', 'TF03', 'TF04', 'TF05', 'TF06', 'TF07', 'TF08', 'TF09', 'TF10', 'TF11', 'TF12', 'TE01', 'TE02', 'TE03', 'TE04', 'TE05', 'TE06', 'TE07', 'TE08', 'TE09', 'TE10', 'TE11', 'TE12', 'TE13', 'TD01', 'TD02', 'TD03', 'TD04', 'TD05', 'TD06', 'TD07', 'TD08', 'TD09', 'TD10', 'TD11', 'TD12', 'TD13', 'TD14', 'TD15', 'TC02', 'TC03', 'TC04', 'TC05', 'TC06', 'TC07', 'TC08', 'TC09', 'TC10', 'TC11', 'TC12', 'TC13', 'TX06', 'TX07', 'TX08', 'TX09', 'TX10', 'TX11', 'TX12', 'TX13', 'TX14', 'TX15', 'TX16', 'TX17']
+2024-10-23 23:50:30,399 - CableDB - INFO - Preparing to create layout
+2024-10-23 23:50:30,399 - CableDB - ERROR - Error creating layout: name 'create_layout' is not defined
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_v4.py", line 150, in main
+    layout = create_layout(df, length_matrix_headers, add_new_records, settings, file_path, columns_to_keep)
+             ^^^^^^^^^^^^^
+NameError: name 'create_layout' is not defined
+2024-10-23 23:50:34,996 - CableDB - INFO - ==================================================
+2024-10-23 23:50:34,996 - CableDB - INFO - Script started
+2024-10-23 23:50:34,996 - CableDB - INFO - ==================================================
+2024-10-23 23:50:34,996 - CableDB - INFO - Settings loaded successfully
+2024-10-23 23:50:42,101 - CableDB - INFO - Entering load_excel_file function
+2024-10-23 23:50:42,101 - CableDB - INFO - Attempting to load data from C:/Users/HAYA008/Desktop/cableDBproject/Cable DB source file version 2.xlsm
+2024-10-23 23:50:42,101 - CableDB - INFO - Reading CableList sheet
+2024-10-23 23:50:49,347 - CableDB - INFO - CableList sheet loaded. Shape: (45764, 21)
+2024-10-23 23:50:49,347 - CableDB - INFO - Reading LengthMatrix sheet
+2024-10-23 23:50:50,135 - CableDB - INFO - LengthMatrix sheet loaded. Shape: (106, 107)
+2024-10-23 23:50:50,135 - CableDB - INFO - Excel file loaded successfully
+2024-10-23 23:50:50,140 - CableDB - INFO - DataFrame loaded successfully. Shape: (45764, 21)
+2024-10-23 23:50:50,141 - CableDB - INFO - Length matrix loaded successfully. Shape: (106, 107)
+2024-10-23 23:50:50,141 - CableDB - INFO - Columns to keep: ['NUMC', 'NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Field1', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21']
+2024-10-23 23:50:50,141 - CableDB - INFO - Length matrix headers: ['TK01', 'TK02', 'TK03', 'TK04', 'TK05', 'TK06', 'TK07', 'TK08', 'TK09', 'TK10', 'TJ01', 'TJ02', 'TJ03', 'TJ04', 'TJ05', 'TJ06', 'TJ07', 'TJ08', 'TJ09', 'TJ10', 'TH01', 'TH02', 'TH03', 'TH04', 'TH05', 'TH06', 'TH07', 'TH08', 'TH09', 'TH10', 'TH11', 'TG01', 'TG2', 'TG03', 'TG04', 'TG05', 'TG06', 'TG07', 'TG08', 'TG09', 'TG10', 'TG11', 'TG12', 'TF01', 'TF02', 'TF03', 'TF04', 'TF05', 'TF06', 'TF07', 'TF08', 'TF09', 'TF10', 'TF11', 'TF12', 'TE01', 'TE02', 'TE03', 'TE04', 'TE05', 'TE06', 'TE07', 'TE08', 'TE09', 'TE10', 'TE11', 'TE12', 'TE13', 'TD01', 'TD02', 'TD03', 'TD04', 'TD05', 'TD06', 'TD07', 'TD08', 'TD09', 'TD10', 'TD11', 'TD12', 'TD13', 'TD14', 'TD15', 'TC02', 'TC03', 'TC04', 'TC05', 'TC06', 'TC07', 'TC08', 'TC09', 'TC10', 'TC11', 'TC12', 'TC13', 'TX06', 'TX07', 'TX08', 'TX09', 'TX10', 'TX11', 'TX12', 'TX13', 'TX14', 'TX15', 'TX16', 'TX17']
+2024-10-23 23:50:50,141 - CableDB - INFO - Preparing to create layout
+2024-10-23 23:50:50,166 - CableDB - INFO - Layout created successfully
+2024-10-23 23:50:51,887 - CableDB - INFO - Window created successfully
+2024-10-24 00:06:02,913 - CableDB - INFO - Logging setup complete
+2024-10-24 00:06:02,913 - CableDB - INFO - ==================================================
+2024-10-24 00:06:02,913 - CableDB - INFO - Script started
+2024-10-24 00:06:02,913 - CableDB - INFO - ==================================================
+2024-10-24 00:06:02,914 - CableDB - INFO - Settings loaded successfully
+2024-10-24 00:06:02,914 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_layout creator freeze.py", line 154, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_layout creator freeze.py", line 127, in main
+    df, length_matrix = load_excel_file(file_path)
+                                        ^^^^^^^^^
+NameError: name 'file_path' is not defined
+2024-10-24 00:06:02,918 - CableDB - INFO - ==================================================
+2024-10-24 00:06:02,918 - CableDB - INFO - Script started
+2024-10-24 00:06:02,918 - CableDB - INFO - ==================================================
+2024-10-24 00:06:02,919 - CableDB - INFO - Settings loaded successfully
+2024-10-24 00:06:02,919 - CableDB - CRITICAL - An unhandled exception occurred
+Traceback (most recent call last):
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_layout creator freeze.py", line 1078, in <module>
+    main()
+  File "C:\Users\HAYA008\Desktop\cableDBproject\cabledb_layout creator freeze.py", line 1051, in main
+    df, length_matrix = load_excel_file(file_path)
+                                        ^^^^^^^^^
+NameError: name 'file_path' is not defined
+2024-10-24 00:09:10,356 - CableDB - INFO - ==================================================
+2024-10-24 00:09:10,356 - CableDB - INFO - ==================================================
+2024-10-24 00:09:10,356 - CableDB - INFO - ==================================================
+2024-10-24 00:09:10,362 - CableDB - INFO - Script completed
+2024-10-24 00:09:10,362 - CableDB - INFO - Script completed
+2024-10-24 00:09:10,362 - CableDB - INFO - Script completed
+2024-10-24 00:09:10,363 - CableDB - INFO - ==================================================
+2024-10-24 00:09:10,363 - CableDB - INFO - ==================================================
+2024-10-24 00:09:10,363 - CableDB - INFO - ==================================================
