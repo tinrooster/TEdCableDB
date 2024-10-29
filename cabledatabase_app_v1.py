@@ -6,7 +6,9 @@ import json
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
+from thefuzz import fuzz
+import re
 
 # Constants
 DEFAULT_SETTINGS = {
@@ -23,14 +25,19 @@ UI_CONSTANTS = {
     'INPUT_SIZE': (15, 1),
     'LABEL_SIZE': (8, 1),
     'BUTTON_COLORS': ('white', 'navy'),
-    'TABLE_COLS': ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 
-                  'Wire Type', 'Length', 'Note', 'Project ID'],
-    'COL_WIDTHS': [8, 12, 25, 25, 12, 12, 8, 25, 25],
-    'FILTER_FIELDS': [
-        ('-NUM-START-', 'NUMBER'),
-        ('-DWG-', 'DWG'),
-        ('-ORIGIN-', 'ORIGIN'),
-        # ... etc
+    'FILTER_KEYS': {
+        'NUMBER': '-NUM-START-',
+        'DWG': '-DWG-',
+        'ORIGIN': '-ORIGIN-',
+        'DEST': '-DEST-',
+        'Wire Type': '-WIRE-TYPE-',
+        'Length': '-LENGTH-',
+        'Project ID': '-PROJECT-'
+    },
+    'TABLE_COLS': [
+        'NUMBER', 'DWG', 'ORIGIN', 'DEST',
+        'Alternate Dwg', 'Wire Type', 'Length',
+        'Note', 'Project ID'
     ]
 }
 
@@ -115,8 +122,20 @@ def show_column_mapping_dialog(excel_columns: List[str], required_columns: List[
 
 class Settings:
     def __init__(self):
-        self.settings_file = Path('config/settings.json')
-        self.settings = self.load_settings()
+        self.settings_file = 'settings.json'
+        self.settings = {
+            'default_file_path': '',
+            'last_directory': '',
+            'filter_keys': {
+                'NUMBER': '-NUM-START-',
+                'DWG': '-DWG-',
+                'ORIGIN': '-ORIGIN-',
+                'DEST': '-DEST-',
+                'Wire Type': '-WIRE-TYPE-',
+                'Length': '-LENGTH-',
+                'Project ID': '-PROJECT-'
+            }
+        }
     
     def load_settings(self):
         try:
@@ -164,7 +183,92 @@ class DataManager:
         self.df = None
         self.length_matrix = None
         self.force_show_mapping = False  # Add this attribute
+        self.filtered_df = None
+        self.filter_keys = {
+            'NUMBER': '-NUM-START-',  # Remove any reference to -NUM-END-
+            'DWG': '-DWG-',
+            'ORIGIN': '-ORIGIN-',
+            'DEST': '-DEST-',
+            'Wire Type': '-WIRE-TYPE-',
+            'Length': '-LENGTH-',
+            'Project ID': '-PROJECT-'
+        }
     
+    def validate_length_values(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
+        """
+        Validate Length column values and return list of validation issues
+        """
+        issues = []
+        if 'Length' not in df.columns:
+            return df, ["Length column not found in data"]
+        
+        # Store original values before conversion
+        original_lengths = df['Length'].copy()
+        
+        # Convert to numeric, with NaN for invalid values
+        df['Length'] = pd.to_numeric(df['Length'], errors='coerce')
+        
+        # Find rows with invalid length values (non-numeric)
+        invalid_mask = df['Length'].isna() & original_lengths.notna()
+        invalid_rows = df[invalid_mask]
+        
+        if not invalid_rows.empty:
+            for idx, row in invalid_rows.iterrows():
+                cable_id = row['NUMBER']
+                invalid_value = original_lengths[idx]
+                issues.append(f"Invalid Length value '{invalid_value}' for cable {cable_id}")
+        
+        # Handle float to int conversion
+        valid_mask = df['Length'].notna()
+        if valid_mask.any():
+            # Check for non-integer values
+            non_integer_mask = (df['Length'] % 1 != 0) & valid_mask
+            non_integer_rows = df[non_integer_mask]
+            
+            if not non_integer_rows.empty:
+                for idx, row in non_integer_rows.iterrows():
+                    cable_id = row['NUMBER']
+                    float_value = row['Length']
+                    issues.append(f"Non-integer Length value '{float_value}' for cable {cable_id}")
+            
+            # Round float values to nearest integer
+            df.loc[valid_mask, 'Length'] = df.loc[valid_mask, 'Length'].round()
+        
+        # Convert to nullable integer type
+        df['Length'] = df['Length'].astype('Int64')
+        
+        return df, issues
+
+    def show_validation_dialog(self, issues: List[str]) -> bool:
+        """Show validation issues dialog with Yes as default"""
+        issues_text = "\n".join(issues[:10])
+        if len(issues) > 10:
+            issues_text += f"\n\n...and {len(issues) - 10} more issues."
+        
+        layout = [
+            [sg.Text("Data Loading Issues Found:\n")],
+            [sg.Multiline(issues_text, size=(50, 10), disabled=True)],
+            [sg.Text("\nWould you like to continue loading the data?")],
+            [
+                sg.Button('Yes', bind_return_key=True),  # Bind Enter key to Yes
+                sg.Button('No')
+            ]
+        ]
+        
+        window = sg.Window(
+            "Validation Issues",
+            layout,
+            modal=True,
+            finalize=True
+        )
+        
+        window['Yes'].set_focus()  # Set focus on Yes button
+        
+        response = window.read()
+        window.close()
+        
+        return response[0] == 'Yes'
+
     def load_excel_file(self, settings, show_dialog=False):
         """Load data from Excel file"""
         try:
@@ -184,55 +288,24 @@ class DataManager:
             print(f"\nAttempting to load data from {file_path}")
             
             with pd.ExcelFile(file_path) as xls:
-                # Get available sheets
                 available_sheets = xls.sheet_names
                 print(f"Available sheets: {available_sheets}")
 
-                # Find the cable list sheet (try variations of the name)
-                cable_sheet = 'CableList'  # Your file already has this sheet
-                
-                # Read headers from selected sheet
+                cable_sheet = 'CableList'
                 print(f"Reading headers from sheet: {cable_sheet}")
-                excel_headers = pd.read_excel(xls, sheet_name=cable_sheet, nrows=0).columns.tolist()
-                print(f"Found columns: {excel_headers}")
                 
-                # Required columns (make Project ID optional)
-                required_columns = ['NUMBER', 'DWG', 'ORIGIN', 'DEST']
-                optional_columns = ['Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Project ID']
-                
-                # Check if we need column mapping
-                need_mapping = False
-                for col in required_columns:
-                    if col not in excel_headers:
-                        need_mapping = True
-                        break
-                
-                if need_mapping or self.force_show_mapping:
-                    column_mapping = show_column_mapping_dialog(excel_headers, required_columns + optional_columns)
-                    if column_mapping:
-                        save_column_mapping(column_mapping)  # Save for future use
-                    else:
-                        return None, None  # User cancelled mapping
-                else:
-                    # Use direct column names since they match
-                    column_mapping = {col: col for col in required_columns + optional_columns if col in excel_headers}
-                
-                # Read data using the mapping
-                print(f"Reading data from {cable_sheet} with column mapping...")
-                # Specify numeric columns as integers
+                # Read all data as strings initially
                 cable_list = pd.read_excel(
                     xls, 
                     sheet_name=cable_sheet,
-                    dtype={
-                        'NUMBER': 'Int64',  # Using Int64 to handle potential NaN values
-                        'NUMC': 'Int64',
-                        'Length': 'Int64'
-                    }
+                    dtype=str  # Force all columns to be read as strings
                 )
                 
-                # Rename columns according to mapping
-                if column_mapping:
-                    cable_list = cable_list.rename(columns=column_mapping)
+                print(f"Found columns: {cable_list.columns.tolist()}")
+                
+                # Required and optional columns
+                required_columns = ['NUMBER', 'DWG', 'ORIGIN', 'DEST']
+                optional_columns = ['Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Project ID']
                 
                 # Add missing optional columns with None values
                 all_columns = required_columns + optional_columns
@@ -243,11 +316,21 @@ class DataManager:
                 # Select only the columns we want
                 cable_list = cable_list[all_columns]
                 
-                # Ensure numeric columns are integers (in case of column renaming)
-                numeric_columns = ['NUMBER', 'Length']
-                for col in numeric_columns:
+                # Clean up whitespace in string columns
+                string_columns = ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 
+                                'Wire Type', 'Note', 'Project ID']
+                for col in string_columns:
                     if col in cable_list.columns:
-                        cable_list[col] = cable_list[col].astype('Int64')
+                        cable_list[col] = cable_list[col].str.strip()
+                
+                # Validate length values
+                cable_list, length_issues = self.validate_length_values(cable_list)
+                
+                # Show validation issues if any
+                if length_issues:
+                    if not self.show_validation_dialog(length_issues):
+                        print("Data loading cancelled due to validation issues")
+                        return None, None
                 
                 # Try to load length matrix if available
                 length_matrix = None
@@ -287,48 +370,100 @@ class DataManager:
             missing = required_cols - set(self.df.columns)
             raise ValueError(f"Missing required columns: {missing}")
 
-    def apply_filters(self, values):
-        """Apply filters to the dataframe"""
-        print("Starting filter application...")
+    def apply_filters(self, filters: Dict[str, str], use_fuzzy: bool = False) -> pd.DataFrame:
+        """Apply filters to dataframe with optional fuzzy matching"""
+        if self.df is None:
+            return pd.DataFrame()
+        
         filtered_df = self.df.copy()
         
-        # Number range filter
-        if values['-NUM-START-']:
-            print(f"Applying number start filter: {values['-NUM-START-']}")
-            try:
-                num_start = int(values['-NUM-START-'])
-                filtered_df = filtered_df[filtered_df['NUMBER'] >= num_start]
-            except ValueError:
-                print(f"Invalid number format for start: {values['-NUM-START-']}")
+        for field, value in filters.items():
+            if not value:  # Skip empty filters
+                continue
+                
+            field = field.replace('-', '').replace('START', '').replace('END', '')
+            
+            if field not in filtered_df.columns:
+                continue
+            
+            # Convert both filter value and column to strings for comparison
+            filtered_df[field] = filtered_df[field].astype(str)
+            value = str(value).lower()
+            
+            # Special handling for numeric fields
+            if field == 'LENGTH':
+                try:
+                    numeric_value = float(value)
+                    filtered_df = filtered_df[filtered_df[field].astype(float) == numeric_value]
+                except ValueError:
+                    filtered_df = filtered_df[filtered_df[field].str.lower() == value]
+                continue
+            
+            if use_fuzzy:
+                # Fuzzy matching for text fields
+                mask = filtered_df[field].apply(lambda x: self._fuzzy_match(str(x), value))
+            else:
+                # Exact matching (case-insensitive)
+                mask = filtered_df[field].str.lower().str.contains(value, regex=False)
+            
+            filtered_df = filtered_df[mask]
         
-        if values['-NUM-END-']:
-            print(f"Applying number end filter: {values['-NUM-END-']}")
-            try:
-                num_end = int(values['-NUM-END-'])
-                filtered_df = filtered_df[filtered_df['NUMBER'] <= num_end]
-            except ValueError:
-                print(f"Invalid number format for end: {values['-NUM-END-']}")
-        
-        # Text field filters
-        for field, col in [
-            ('-DWG-', 'DWG'),
-            ('-ORIGIN-', 'ORIGIN'),
-            ('-DEST-', 'DEST'),
-            ('-ALT-DWG-', 'Alternate Dwg'),
-            ('-WIRE-', 'Wire Type'),
-            ('-LENGTH-', 'Length'),
-            ('-NOTE-', 'Note'),
-            ('-PROJECT-ID-', 'Project ID')
-        ]:
-            if values[field]:
-                print(f"Applying filter for {field}: {values[field]}")
-                if values[f'{field}EXACT-']:
-                    filtered_df = filtered_df[filtered_df[col].astype(str) == str(values[field])]
-                else:
-                    filtered_df = filtered_df[filtered_df[col].astype(str).str.contains(str(values[field]), case=False, na=False)]
-        
-        print(f"Filter complete. Rows remaining: {len(filtered_df)}")
         return filtered_df
+
+    def _fuzzy_match(self, text: str, pattern: str, threshold: int = 80) -> bool:
+        """
+        Perform fuzzy matching with multiple strategies
+        Returns True if any matching strategy succeeds
+        """
+        text = str(text).lower()
+        pattern = str(pattern).lower()
+        
+        # Exact substring match
+        if pattern in text:
+            return True
+            
+        # Fuzzy ratio match
+        if fuzz.ratio(text, pattern) >= threshold:
+            return True
+            
+        # Partial ratio match (for substrings)
+        if fuzz.partial_ratio(text, pattern) >= threshold:
+            return True
+            
+        # Token sort ratio (handles word order differences)
+        if fuzz.token_sort_ratio(text, pattern) >= threshold:
+            return True
+            
+        # Token set ratio (handles extra/missing words)
+        if fuzz.token_set_ratio(text, pattern) >= threshold:
+            return True
+        
+        return False
+
+    def group_by_field(self, field: str) -> Dict[str, int]:
+        """Group records by field and count occurrences"""
+        if self.df is None or field not in self.df.columns:
+            return {}
+            
+        # Group by the field, handling both string and non-string data
+        grouped = self.df[field].astype(str).value_counts()
+        
+        # Convert to dictionary and sort by value (count)
+        result = dict(sorted(grouped.items(), key=lambda x: (-x[1], x[0].lower())))
+        
+        return result
+
+    def update_filtered_data(self, filters: Dict[str, str], use_fuzzy: bool = False) -> Tuple[List[List], List[str]]:
+        """Update filtered data based on current filters"""
+        filtered_df = self.apply_filters(filters, use_fuzzy)
+        
+        if filtered_df.empty:
+            return [], []
+            
+        headers = filtered_df.columns.tolist()
+        values = filtered_df.values.tolist()
+        
+        return values, headers
 
     def apply_sorting(self, df, sort_column, ascending=True):
         """Apply sorting to the dataframe"""
@@ -341,6 +476,40 @@ class DataManager:
         if group_by:
             return df.sort_values(by=group_by)
         return df
+
+    def get_filter_values(self, values: Dict[str, Any]) -> Dict[str, str]:
+        """Get filter values from UI values dictionary"""
+        return {
+            'NUMBER': values.get('-NUM-START-', ''),
+            'DWG': values.get('-DWG-', ''),
+            'ORIGIN': values.get('-ORIGIN-', ''),
+            'DEST': values.get('-DEST-', ''),
+            'Wire Type': values.get('-WIRE-TYPE-', ''),
+            'Length': values.get('-LENGTH-', ''),
+            'Project ID': values.get('-PROJECT-', '')
+        }
+
+    def group_and_sort_data(self, group_by: str = None, sort_by: str = None, 
+                           sort_ascending: bool = True) -> Dict[str, Any]:
+        """Group and sort the data"""
+        if self.filtered_df is None:
+            return {}
+        
+        result = {}
+        
+        # Handle grouping
+        if group_by:
+            groups = self.filtered_df.groupby(group_by).size()
+            result['groups'] = dict(sorted(groups.items(), 
+                                         key=lambda x: (-x[1], x[0].lower())))
+        
+        # Handle sorting
+        if sort_by:
+            self.filtered_df.sort_values(by=sort_by, 
+                                       ascending=sort_ascending, 
+                                       inplace=True)
+        
+        return result
 
 def show_color_config_window(settings):
     """Show color configuration window"""
@@ -540,30 +709,71 @@ class EventHandler:
     def __init__(self, window, data_manager):
         self.window = window
         self.data_manager = data_manager
-        self.filtered_df = data_manager.df.copy()
-    
-    def handle_event(self, event, values):
-        """Central event handling"""
-        try:
-            # Debug print for event handling
-            if event != '__TIMEOUT__':
-                print(f"Event received: {event}")
-                
-            if event == 'Filter' or '_Enter' in str(event):  # Changed event check
-                return self.handle_filter(values)
-            elif event == 'Sort':
-                return self.handle_sort(values)
-            elif event == 'Reset Sort':
-                return self.handle_reset_sort()
-            elif event == 'Clear Filter':
-                return self.handle_clear_filter()
-            elif event == 'Apply Grouping':
-                return self.handle_grouping(values)
-            elif event == 'Reset Grouping':
-                return self.handle_reset_grouping()
-        except Exception as e:
-            print(f"Error handling event {event}: {str(e)}")
-            return False
+        self.current_group_field = None
+        # Update valid filter keys
+        self.valid_filter_keys = [
+            '-NUM-START-',
+            '-DWG-',
+            '-ORIGIN-',
+            '-DEST-',
+            '-WIRE-TYPE-',
+            '-LENGTH-',
+            '-PROJECT-',
+            '-FUZZY-SEARCH-'
+        ]
+
+    def handle_event(self, event: str, values: Dict[str, Any]) -> bool:
+        """Handle all events"""
+        if event == '-APPLY-SORT-':
+            sort_by = values.get('-SORT-BY-')
+            if sort_by:
+                self.handle_sort_event(values)
+            return True
+            
+        if event == '-APPLY-GROUP-':
+            group_by = values.get('-GROUP-BY-')
+            if group_by:
+                self.handle_group_event(values)
+            return True
+            
+        if event == '-RESET-GROUP-':
+            self.reset_grouping()
+            return True
+            
+        if event == '-APPLY-FILTER-':
+            self.handle_filter_event(values)
+            return True
+            
+        if event == '-CLEAR-FILTER-':
+            self.clear_filters()
+            return True
+            
+        # Debug print for event handling
+        if event != '__TIMEOUT__':
+            print(f"Event received: {event}")
+            
+        if event == 'Filter' or '_Enter' in str(event):  # Changed event check
+            return self.handle_filter(values)
+        elif event == 'Sort':
+            return self.handle_sort(values)
+        elif event == 'Reset Sort':
+            return self.handle_reset_sort()
+        elif event == 'Clear Filter':
+            return self.handle_clear_filter()
+        elif event == 'Apply Grouping':
+            return self.handle_grouping(values)
+        elif event == 'Reset Grouping':
+            return self.handle_reset_grouping()
+        elif event in ['-GROUP-BY-', '-SORT-BY-', '-SORT-ASC-', '-SORT-DESC-']:
+            self.handle_group_sort_event(event, values)
+            return True
+        
+        if event == '-CLEAR-GROUP-':
+            self.window['-GROUP-BY-'].update('')
+            self.window['-GROUP-DISPLAY-'].update('')
+            return True
+        
+        return False
     
     def handle_filter(self, values):
         """Handle filter events"""
@@ -628,10 +838,130 @@ class EventHandler:
             print(f"Reset sort error: {str(e)}")
             return False
 
+    def handle_filter_event(self, event: str, values: Dict[str, Any]) -> None:
+        """Handle filter-related events"""
+        filters = {
+            'NUMBER': {
+                'start': values.get('-NUM-START-', ''),
+                'end': values.get('-NUM-END-', ''),
+                'exact': values.get('-NUM-EXACT-', False)
+            },
+            'DWG': {
+                'value': values.get('-DWG-', ''),
+                'exact': values.get('-DWG-EXACT-', False)
+            },
+            'ORIGIN': {
+                'value': values.get('-ORIGIN-', ''),
+                'exact': values.get('-ORIGIN-EXACT-', False)
+            },
+            'DEST': {
+                'value': values.get('-DEST-', ''),
+                'exact': values.get('-DEST-EXACT-', False)
+            },
+            'Wire Type': {
+                'value': values.get('-WIRE-TYPE-', ''),
+                'exact': values.get('-WIRE-TYPE-EXACT-', False)
+            },
+            'Length': {
+                'value': values.get('-LENGTH-', ''),
+                'exact': values.get('-LENGTH-EXACT-', False)
+            },
+            'Project ID': {
+                'value': values.get('-PROJECT-', ''),
+                'exact': values.get('-PROJECT-EXACT-', False)
+            }
+        }
+        
+        use_fuzzy = values.get('-FUZZY-SEARCH-', False)
+        
+        filtered_values, headers = self.data_manager.update_filtered_data(filters, use_fuzzy)
+        self.window['-TABLE-'].update(values=filtered_values)
+        self.window['-RECORD-COUNT-'].update(f'Records: {len(filtered_values)}')
+        
+        if self.current_group_field:
+            self.update_group_display(self.current_group_field)
+
+    def update_group_display(self, field: str) -> None:
+        """Update the group display for the selected field"""
+        if not field:
+            return
+            
+        self.current_group_field = field
+        groups = self.data_manager.group_by_field(field)
+        
+        # Format the display text
+        if groups:
+            display_text = "\n".join([f"{k}: {v}" for k, v in groups.items()])
+        else:
+            display_text = "No groups found"
+        
+        self.window['-GROUP-DISPLAY-'].update(display_text)
+
+    def clear_filters(self):
+        """Clear all filters"""
+        # Update list of filter keys to clear
+        filter_keys = [
+            '-NUM-START-',
+            '-DWG-',
+            '-ORIGIN-',
+            '-DEST-',
+            '-WIRE-TYPE-',
+            '-LENGTH-',
+            '-PROJECT-'
+        ]
+        for key in filter_keys:
+            if self.window.find_element(key):
+                self.window[key].update('')
+
+    def handle_group_sort_event(self, event: str, values: Dict[str, Any]) -> None:
+        """Handle group by and sort events"""
+        group_by = values.get('-GROUP-BY-', None)
+        sort_by = values.get('-SORT-BY-', None)
+        sort_ascending = values.get('-SORT-ASC-', True)
+        
+        result = self.data_manager.group_and_sort_data(
+            group_by, sort_by, sort_ascending
+        )
+        
+        # Update group display
+        if 'groups' in result:
+            display_text = "\n".join([f"{k}: {v}" for k, v in result['groups'].items()])
+            self.window['-GROUP-DISPLAY-'].update(display_text)
+        
+        # Update table with sorted data
+        if sort_by:
+            values = self.data_manager.filtered_df.values.tolist()
+            self.window['-TABLE-'].update(values=values)
+
+    def handle_menu_event(self, event: str, values: Dict[str, Any]) -> bool:
+        """Handle menu-related events"""
+        if '+ENTER+' in event:
+            # Handle menu hover
+            return True
+            
+        if '+LEAVE+' in event:
+            # Handle menu leave
+            return True
+            
+        if event in ('Clear Filters', 'Clear Groups', 'Default', 'Dark', 'Light'):
+            # Handle menu actions
+            return True
+        
+        return False
+
 class UIBuilder:
     def __init__(self):
         self.constants = UI_CONSTANTS
-    
+        self.filter_keys = {
+            'NUMBER': '-NUM-START-',  # Single key for number filter
+            'DWG': '-DWG-',
+            'ORIGIN': '-ORIGIN-',
+            'DEST': '-DEST-',
+            'Wire Type': '-WIRE-TYPE-',
+            'Length': '-LENGTH-',
+            'Project ID': '-PROJECT-'
+        }
+
     def create_filter_input(self, key, label):
         """Standardized filter input creation"""
         return [
@@ -657,74 +987,111 @@ class UIBuilder:
     
     def create_main_layout(self):
         """Create the main application layout"""
-        menu_bar = self.create_menu()
-        
-        headers = self.constants['TABLE_COLS']
-        
-        # Left panel - Filters with special handling for NUMBER range
-        filters_frame = sg.Frame('Filters', [
-            # Special handling for NUMBER range
-            [sg.Text('NUMBER:', size=self.constants['LABEL_SIZE']),
-             sg.Input(size=(8,1), key='-NUM-START-', enable_events=True),
-             sg.Text('to', size=(2,1)),  # Fixed width for 'to'
-             sg.Input(size=(8,1), key='-NUM-END-', enable_events=True),
-             sg.Checkbox('Exact', key='-NUM-EXACT-')],
-            # Regular filter inputs
-            self.create_filter_input('-DWG-', 'DWG:'),
-            self.create_filter_input('-ORIGIN-', 'ORIGIN:'),
-            self.create_filter_input('-DEST-', 'DEST:'),
-            self.create_filter_input('-ALT-DWG-', 'Alternate D:'),
-            self.create_filter_input('-WIRE-', 'Wire Type:'),
-            self.create_filter_input('-LENGTH-', 'Length:'),
-            self.create_filter_input('-NOTE-', 'Note:'),
-            self.create_filter_input('-PROJECT-ID-', 'Project ID:')
-        ])
+        # Menu definition
+        menu_def = [
+            ['File', ['Open', 'Save', 'Settings', 'Exit']],
+            ['Actions', ['Clear Filters', 'Clear Groups']],
+            ['Colors', ['Default', 'Dark', 'Light']],
+            ['Help', ['About']]
+        ]
 
-        # Sort and Group frame
-        sort_group_frame = sg.Frame('Sort and Group', [
-            [sg.Text('Sort By:'), 
-             sg.Combo(headers, key='-SORT-', size=(15,1))],
-            [sg.Radio('Ascending', 'SORT', key='-SORT-ASC-', default=True),
-             sg.Radio('Descending', 'SORT', key='-SORT-DESC-')],
-            [sg.Button('Sort'), sg.Button('Reset Sort')],
-            [sg.Text('Group By:'),
-             sg.Combo(headers, key='-GROUP-', size=(15,1))],
-            [sg.Button('Apply Grouping'), sg.Button('Reset Grouping')]
-        ])
+        # Top controls frame
+        top_controls = [
+            [
+                # Filters frame
+                sg.Frame('Filters', [
+                    [sg.Text('NUMBER:', size=(8, 1)), 
+                     sg.Input(size=(15, 1), key='-NUM-START-'),
+                    sg.Text('to'), 
+                    sg.Input(size=(15, 1), key='-NUM-END-')],
+                    [sg.Text('DWG:', size=(8, 1)), 
+                    sg.Input(size=(15, 1), key='-DWG-'),
+                    sg.Checkbox('Exact', key='-DWG-EXACT-')],
+                    [sg.Text('ORIGIN:', size=(8, 1)), 
+                    sg.Input(size=(15, 1), key='-ORIGIN-'),
+                    sg.Checkbox('Exact', key='-ORIGIN-EXACT-')],
+                    [sg.Text('DEST:', size=(8, 1)), 
+                    sg.Input(size=(15, 1), key='-DEST-'),
+                    sg.Checkbox('Exact', key='-DEST-EXACT-')]
+                ]),
+                
+                # Sort and Group frame
+                sg.Frame('Sort and Group', [
+                    [
+                        sg.Text('Sort By:', size=(8, 1)),
+                        sg.Combo(
+                            values=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate DWG', 
+                                   'Wire Type', 'Length', 'Note', 'Project ID'],
+                            key='-SORT-BY-',
+                            size=(15, 1)
+                        ),
+                        sg.Radio('Ascending', 'SORT', key='-SORT-ASC-', default=True),
+                        sg.Radio('Descending', 'SORT', key='-SORT-DESC-'),
+                        sg.Button('Sort', key='-APPLY-SORT-')
+                    ],
+                    [
+                        sg.Text('Group By:', size=(8, 1)),
+                        sg.Combo(
+                            values=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate DWG', 
+                                   'Wire Type', 'Length', 'Note', 'Project ID'],
+                            key='-GROUP-BY-',
+                            size=(15, 1)
+                        ),
+                        sg.Button('Apply Grouping', key='-APPLY-GROUP-'),
+                        sg.Button('Reset Grouping', key='-RESET-GROUP-')
+                    ]
+                ])
+            ]
+        ]
 
-        # Filter buttons frame
-        filter_buttons_frame = sg.Frame('Filter Controls', [
-            [sg.Button('Filter'), sg.Button('Clear Filter')]
-        ])
+        # Table with alternating row colors
+        table_frame = [
+            [sg.Text('Records:', key='-RECORD-COUNT-')],
+            [sg.Table(
+                values=[],
+                headings=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate DWG', 
+                         'Wire Type', 'Length', 'Note', 'Project ID'],
+                auto_size_columns=True,
+                justification='left',
+                key='-TABLE-',
+                enable_events=True,
+                expand_x=True,
+                expand_y=True,
+                enable_click_events=True,
+                row_colors=((0, '#191919'), (1, '#212121')),
+                text_color='white',
+                background_color='#191919'
+            )]
+        ]
 
-        # Table frame with updated colors
-        table_frame = [[sg.Table(
-            values=[],
-            headings=headers,
-            auto_size_columns=True,
-            col_widths=self.constants['COL_WIDTHS'],
-            justification='left',
-            num_rows=25,
-            background_color='#232323',           # Default background
-            alternating_row_color='#191919',      # Alternating row color
-            text_color='#d6d6dd',                 # Text color
-            selected_row_colors=('white', 'navy'), # Selected row colors
-            key='-TABLE-',
-            enable_events=True,
-            expand_x=True,
-            expand_y=True,
-            bind_return_key=True
-        )]]
-
-        # Complete layout
+        # Main layout
         layout = [
-            [menu_bar],
-            [sg.Column([[filters_frame]], size=(300, None), pad=(0,0)), 
-             sg.Column([[sort_group_frame], [filter_buttons_frame]], size=(300, None), pad=(0,0))],
-            [sg.Column(table_frame, expand_x=True, expand_y=True, pad=(0,0))]
+            [sg.Menubar(menu_def, key='-MENU-', background_color='#404040', text_color='white')],
+            [sg.Column(top_controls, expand_x=True)],
+            [sg.Column(table_frame, expand_x=True, expand_y=True)]
         ]
         
-        return layout, headers
+        return layout
+
+    def create_window(self):
+        """Create the main window"""
+        sg.theme('DarkGrey13')  # Or your preferred dark theme
+        
+        window = sg.Window(
+            'Cable Database Interface',
+            self.create_main_layout(),
+            resizable=True,
+            finalize=True,
+            return_keyboard_events=True,
+            use_default_focus=False,
+            enable_close_attempted_event=True
+        )
+        
+        # Bind menu events
+        window['-MENU-'].bind('<Enter>', '+ENTER+')
+        window['-MENU-'].bind('<Leave>', '+LEAVE+')
+        
+        return window
 
 class CableDatabaseApp:
     def __init__(self):
@@ -803,23 +1170,16 @@ class CableDatabaseApp:
             sg.popup_error("Could not load any data file. Application will close.")
             return False
             
-        layout, headers = self.ui_builder.create_main_layout()
-        self.window = sg.Window(
-            'Cable Database Interface', 
-            layout,
-            resizable=True,
-            finalize=True,
-            size=(1200, 800),
-            location=(100, 100),
-            return_keyboard_events=True,  # Enable keyboard events
-            use_default_focus=False
-        )
+        self.window = self.ui_builder.create_window()
         
         # Bind return key to all input fields
-        input_keys = ['-NUM-START-', '-NUM-END-', '-DWG-', '-ORIGIN-', '-DEST-', 
-                     '-ALT-DWG-', '-WIRE-', '-LENGTH-', '-NOTE-', '-PROJECT-ID-']
+        input_keys = [
+            '-NUM-START-', '-NUM-END-', '-DWG-', '-ORIGIN-', '-DEST-',
+            '-WIRE-TYPE-', '-LENGTH-', '-PROJECT-'
+        ]
         for key in input_keys:
-            self.window[key].bind('<Return>', '_Enter')
+            if key in self.window.key_dict:  # Check if key exists before binding
+                self.window[key].bind('<Return>', '_Enter')
             
         # Initialize the event handler
         self.event_handler = EventHandler(self.window, self.data_manager)
@@ -856,8 +1216,6 @@ if __name__ == "__main__":
         traceback.print_exc()
     
     
-
-
 
 
 
