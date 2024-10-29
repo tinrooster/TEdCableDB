@@ -124,26 +124,31 @@ def show_column_mapping_dialog(excel_columns: List[str], required_columns: List[
 class Settings:
     def __init__(self):
         self.settings_file = 'cable_db_settings.json'
+        self.default_db_path = os.path.join(os.getcwd(), 'LengthMatrix.xlsx')  # Default database path
         self.settings = self.load_settings()
         
+    def create_default_settings(self) -> Dict:
+        """Create default settings with paths"""
+        return {
+            'first_run': False,
+            'theme': 'Dark',
+            'last_directory': os.getcwd(),
+            'default_db_path': self.default_db_path
+        }
+
     def load_settings(self) -> Dict:
         """Load settings from file or create default"""
         try:
             with open(self.settings_file, 'r') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            # First time setup - create default settings
-            default_settings = {
-                'first_run': False,  # Add this flag
-                'theme': 'Dark',
-                'last_directory': os.getcwd(),
-                # ... other settings ...
-            }
+                settings = json.load(f)
+                # Ensure default_db_path exists in loaded settings
+                if 'default_db_path' not in settings:
+                    settings['default_db_path'] = self.default_db_path
+                return settings
+        except (FileNotFoundError, json.JSONDecodeError):
+            default_settings = self.create_default_settings()
             self.save_settings(default_settings)
             return default_settings
-        except json.JSONDecodeError:
-            # Handle corrupted settings file
-            return self.create_default_settings()
 
     def save_settings(self, settings: Dict = None) -> None:
         """Save settings without showing dialog"""
@@ -520,13 +525,19 @@ class DataManager:
         
         return result
 
-    def load_file(self, filename: str) -> None:
-        """Load data from file"""
+    def load_file(self, filename: str) -> bool:
+        """Load data from file with proper error handling"""
         try:
+            if not filename or not os.path.exists(filename):
+                return False
+                
             self.df = pd.read_excel(filename)
-            self.original_df = self.df.copy()  # Keep a copy of original data
+            self.original_df = self.df.copy()
+            print(f"Successfully loaded {len(self.df)} records")
+            return True
         except Exception as e:
             print(f"Error loading file: {str(e)}")
+            return False
 
 def show_color_config_window(settings):
     """Show color configuration window"""
@@ -742,19 +753,38 @@ class EventHandler:
     def handle_event(self, event: str, values: Dict[str, Any]) -> bool:
         """Handle all events"""
         try:
-            # Handle Enter key in any input field
-            if event.endswith('_Enter'):
-                self.handle_filter_event(values)
-                return True
-
-            if event == '-APPLY-FILTER-':
-                self.handle_filter_event(values)
-                return True
+            # Handle table clicks differently
+            if isinstance(event, tuple) and event[0] == '-TABLE-':
+                if event[1] == '+CLICKED+':
+                    # Handle table click if needed
+                    return True
                 
-            # ... rest of event handling ...
-            
+            # Regular event handling
+            if isinstance(event, str):  # Only process string events
+                if event == '-APPLY-SORT-':
+                    sort_by = values['-SORT-BY-']
+                    if sort_by and self.data_manager.df is not None:
+                        ascending = values['-SORT-ASC-']
+                        self.data_manager.df.sort_values(
+                            by=sort_by,
+                            ascending=ascending,
+                            inplace=True
+                        )
+                        self.update_table()
+                    return True
+                    
+                if event == '-APPLY-GROUP-':
+                    group_by = values['-GROUP-BY-']
+                    if group_by and self.data_manager.df is not None:
+                        grouped = self.data_manager.df.groupby(group_by).agg(list)
+                        self.data_manager.df = grouped.reset_index()
+                        self.update_table()
+                    return True
+                    
+                # ... rest of event handling ...
+                
         except Exception as e:
-            print(f"Error handling event {event}: {str(e)}")
+            print(f"Error in event handler: {str(e)}")
             return True
     
     def handle_filter_event(self, values: Dict[str, Any]) -> None:
@@ -984,9 +1014,13 @@ class UIBuilder:
         # Main layout with side-by-side arrangement
         layout = [
             [sg.Menu(menu_def, key='-MENU-', tearoff=False)],
-            [sg.Column(filter_frame, pad=((10, 20), (10, 10))),
-             sg.Column(sort_group_controls, pad=((20, 10), (10, 10)))],
-            [sg.Text('Records:', key='-RECORD-COUNT-', pad=(10, 5))],
+            [sg.Column(
+                [[sg.Frame('', filter_frame, relief=sg.RELIEF_FLAT)],
+                 [sg.Frame('Sort and Group', sort_group_controls)]],
+                pad=((10, 10), (10, 10))
+            )],
+            [sg.Text('Records:', key='-RECORD-COUNT-', pad=(10, 5)),
+             sg.Text('', key='-STATUS-', pad=(10, 5))],  # Add status line
             [sg.Table(
                 values=[],
                 headings=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate DWG', 
@@ -1039,48 +1073,95 @@ class CableDatabaseApp:
     def __init__(self):
         self.settings = Settings()
         self.data_manager = DataManager()
-        self.ui_builder = UIBuilder()
-        self.window = None
-        self.event_handler = None
+        sg.theme('DarkGrey13')
         
-        # Check if this is first run (no default file path set)
-        if not self.settings.settings.get('default_file_path'):
-            self.show_first_run_dialog()
-    
-    def show_first_run_dialog(self):
-        """Show first-run dialog to set up initial settings"""
+        # Show first-time setup only if never run before
+        if not self.settings.settings.get('first_run', False):
+            if self.show_first_time_setup():  # Only proceed if setup is successful
+                self.settings.settings['first_run'] = True
+                self.settings.save_settings()
+        
+        self.window = self.create_window()
+        
+        # If no data is loaded, prompt for file
+        if self.data_manager.df is None:
+            response = sg.popup_yes_no(
+                'Failed to load data file. Would you like to select a file now?',
+                title='Load Error'
+            )
+            if response == 'Yes':
+                self.handle_file_open()
+
+    def show_first_time_setup(self):
+        """Show first-time setup dialog with file selection"""
         layout = [
-            [sg.Text("Welcome to Cable Database Interface!", font=('Any', 12, 'bold'))],
-            [sg.Text("Please select your Excel file to get started:")],
-            [sg.Input(key='-DEFAULT-FILE-', size=(50, 1)),
-             sg.FileBrowse(file_types=(("Excel Files", "*.xlsx;*.xlsm"),))],
-            [sg.Checkbox("Auto-load this file on startup", 
-                        key='-AUTO-LOAD-', default=True)],
-            [sg.Button("Save"), sg.Button("Skip")]
+            [sg.Text("stutroD cable db interface", font=('Any', 12, 'bold'))],
+            [sg.Text("Select a database file to begin:")],
+            [sg.Input(key='-FILE-', enable_events=True),
+             sg.FileBrowse(file_types=(('Excel Files', '*.xlsx'), ('All Files', '*.*')))],
+            [sg.Button('OK'), sg.Button('Cancel')]
         ]
         
-        window = sg.Window("First Time Setup", layout, modal=True, finalize=True)
+        window = sg.Window(
+            'stutroD cable db interface',
+            layout,
+            modal=True,
+            finalize=True
+        )
         
         while True:
             event, values = window.read()
             
-            if event in (sg.WIN_CLOSED, "Skip"):
-                break
+            if event in (sg.WIN_CLOSED, 'Cancel'):
+                window.close()
+                return None
                 
-            if event == "Save":
-                if values['-DEFAULT-FILE-']:
-                    self.settings.settings.update({
-                        'default_file_path': values['-DEFAULT-FILE-'],
-                        'auto_load_default': values['-AUTO-LOAD-']
-                    })
-                    self.settings.save_settings()
-                    sg.popup("Settings saved successfully!", title="Success")
-                    break
+            if event == 'OK':
+                filename = values['-FILE-']
+                window.close()
+                if filename:
+                    return filename
                 else:
-                    sg.popup_error("Please select an Excel file.", title="Error")
-        
-        window.close()
-    
+                    sg.popup_error('Please select a file first')
+                    return self.handle_file_open()  # Fall back to regular file open
+
+    def handle_file_open(self):
+        """Handle file open operation with default path"""
+        try:
+            default_path = self.settings.settings.get('default_db_path', '')
+            initial_dir = os.path.dirname(default_path) if default_path else self.settings.settings.get('last_directory', '')
+            
+            filename = sg.popup_get_file(
+                'Select database file',
+                default_path=default_path,
+                initial_folder=initial_dir,
+                file_types=(('Excel Files', '*.xlsx'), ('All Files', '*.*')),
+                no_window=True
+            )
+            
+            if not filename:  # User cancelled
+                return False
+                
+            if not os.path.exists(filename):
+                sg.popup_error('File not found', 'Please select a valid file')
+                return self.handle_file_open()
+                
+            success = self.data_manager.load_file(filename)
+            if success:
+                # Update both default path and last directory
+                self.settings.settings['default_db_path'] = filename
+                self.settings.settings['last_directory'] = os.path.dirname(filename)
+                self.settings.save_settings()
+                self.update_table()
+                return True
+            else:
+                sg.popup_error('Failed to load file', 'Please try again with a valid database file')
+                return self.handle_file_open()
+                
+        except Exception as e:
+            sg.popup_error(f'Error opening file: {str(e)}')
+            return False
+
     def initialize(self):
         """Initialize the application"""
         # First try to load data
@@ -1158,8 +1239,6 @@ if __name__ == "__main__":
         traceback.print_exc()
     
     
-
-
 
 
 
