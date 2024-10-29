@@ -34,6 +34,85 @@ UI_CONSTANTS = {
     ]
 }
 
+# Add these functions at the module level (near the top of the file)
+def load_column_mapping() -> Dict[str, str]:
+    """Load saved column mapping"""
+    try:
+        with open('config/column_mapping.json', 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def save_column_mapping(mapping: Dict[str, str]):
+    """Save column mapping to settings file"""
+    settings_path = Path('config/column_mapping.json')
+    settings_path.parent.mkdir(exist_ok=True)
+    with open(settings_path, 'w') as f:
+        json.dump(mapping, f, indent=4)
+
+def show_column_mapping_dialog(excel_columns: List[str], required_columns: List[str]) -> Dict[str, str]:
+    """Show dialog for mapping Excel columns to required database fields"""
+    layout = [
+        [sg.Text("Map Your Excel Columns to Required Fields", font=('Any', 12, 'bold'))],
+        [sg.Text("Please match each required field with the corresponding column from your Excel file:")],
+        [sg.Text("_" * 80)],
+    ]
+    
+    # Create mapping inputs for each required column
+    mappings = {}
+    for req_col in required_columns:
+        # Try to find a close match in excel_columns
+        default_match = next(
+            (col for col in excel_columns 
+             if col.upper().replace(" ", "") == req_col.upper().replace(" ", "")),
+            excel_columns[0] if excel_columns else ""
+        )
+        
+        layout.append([
+            sg.Text(f"{req_col}:", size=(15, 1)),
+            sg.Combo(
+                excel_columns,
+                default_value=default_match,
+                key=f'-MAP-{req_col}-',
+                size=(30, 1)
+            ),
+            sg.Checkbox("Skip this field", key=f'-SKIP-{req_col}-')
+        ])
+    
+    layout.extend([
+        [sg.Text("_" * 80)],
+        [sg.Checkbox("Save this mapping for future use", key='-SAVE-MAPPING-', default=True)],
+        [sg.Button("Apply Mapping"), sg.Button("Cancel")]
+    ])
+    
+    window = sg.Window("Column Mapping", layout, modal=True, finalize=True)
+    
+    while True:
+        event, values = window.read()
+        
+        if event in (sg.WIN_CLOSED, "Cancel"):
+            window.close()
+            return None
+            
+        if event == "Apply Mapping":
+            # Create mapping dictionary
+            mapping = {}
+            for req_col in required_columns:
+                if not values[f'-SKIP-{req_col}-']:  # If field is not skipped
+                    excel_col = values[f'-MAP-{req_col}-']
+                    if excel_col:
+                        mapping[req_col] = excel_col
+            
+            # Save mapping if requested
+            if values['-SAVE-MAPPING-']:
+                save_column_mapping(mapping)
+            
+            window.close()
+            return mapping
+    
+    window.close()
+    return None
+
 class Settings:
     def __init__(self):
         self.settings_file = Path('config/settings.json')
@@ -81,8 +160,10 @@ def save_last_file_path(file_path):
 
 class DataManager:
     def __init__(self):
+        """Initialize the DataManager"""
         self.df = None
         self.length_matrix = None
+        self.force_show_mapping = False  # Add this attribute
     
     def load_excel_file(self, settings, show_dialog=False):
         """Load data from Excel file"""
@@ -90,42 +171,96 @@ class DataManager:
             if show_dialog:
                 file_path = sg.popup_get_file('Select Excel file', 
                                             file_types=(("Excel Files", "*.xls*"),),
-                                            initial_folder=settings.settings['last_directory'])
+                                            initial_folder=settings.settings.get('last_directory', ''))
                 if not file_path:
+                    print("No file selected in dialog")
                     return None, None
-                
-                settings.settings['last_file_path'] = file_path
-                settings.settings['last_directory'] = str(Path(file_path).parent)
-                settings.save_settings()
             else:
-                file_path = settings.settings['default_file_path']
+                file_path = settings.settings.get('default_file_path')
                 if not file_path or not Path(file_path).exists():
+                    print(f"Default file path invalid or not found: {file_path}")
                     return None, None
 
-            print(f"\nLoading data from {file_path}")
+            print(f"\nAttempting to load data from {file_path}")
+            
             with pd.ExcelFile(file_path) as xls:
-                required_sheets = ["CableList", "LengthMatrix"]
-                missing_sheets = [sheet for sheet in required_sheets if sheet not in xls.sheet_names]
-                
-                if missing_sheets:
-                    sg.popup_error(f"Missing required sheets: {', '.join(missing_sheets)}")
-                    return None, None
+                # Get available sheets
+                available_sheets = xls.sheet_names
+                print(f"Available sheets: {available_sheets}")
 
-                # Specify the exact columns we want
-                desired_columns = ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 
-                                 'Wire Type', 'Length', 'Note', 'Project ID']
+                # Find the cable list sheet (try variations of the name)
+                cable_sheet = 'CableList'  # Your file already has this sheet
                 
-                # Read only the columns we want
-                cable_list = pd.read_excel(xls, sheet_name="CableList", usecols=desired_columns)
-                length_matrix = pd.read_excel(xls, sheet_name="LengthMatrix", index_col=0)
+                # Read headers from selected sheet
+                print(f"Reading headers from sheet: {cable_sheet}")
+                excel_headers = pd.read_excel(xls, sheet_name=cable_sheet, nrows=0).columns.tolist()
+                print(f"Found columns: {excel_headers}")
                 
-                # Ensure column order matches our headers
-                cable_list = cable_list[desired_columns]
+                # Required columns (make Project ID optional)
+                required_columns = ['NUMBER', 'DWG', 'ORIGIN', 'DEST']
+                optional_columns = ['Alternate Dwg', 'Wire Type', 'Length', 'Note', 'Project ID']
                 
+                # Check if we need column mapping
+                need_mapping = False
+                for col in required_columns:
+                    if col not in excel_headers:
+                        need_mapping = True
+                        break
+                
+                if need_mapping or self.force_show_mapping:
+                    column_mapping = show_column_mapping_dialog(excel_headers, required_columns + optional_columns)
+                    if column_mapping:
+                        save_column_mapping(column_mapping)  # Save for future use
+                    else:
+                        return None, None  # User cancelled mapping
+                else:
+                    # Use direct column names since they match
+                    column_mapping = {col: col for col in required_columns + optional_columns if col in excel_headers}
+                
+                # Read data using the mapping
+                print(f"Reading data from {cable_sheet} with column mapping...")
+                # Specify numeric columns as integers
+                cable_list = pd.read_excel(
+                    xls, 
+                    sheet_name=cable_sheet,
+                    dtype={
+                        'NUMBER': 'Int64',  # Using Int64 to handle potential NaN values
+                        'NUMC': 'Int64',
+                        'Length': 'Int64'
+                    }
+                )
+                
+                # Rename columns according to mapping
+                if column_mapping:
+                    cable_list = cable_list.rename(columns=column_mapping)
+                
+                # Add missing optional columns with None values
+                all_columns = required_columns + optional_columns
+                for col in all_columns:
+                    if col not in cable_list.columns:
+                        cable_list[col] = None
+                
+                # Select only the columns we want
+                cable_list = cable_list[all_columns]
+                
+                # Ensure numeric columns are integers (in case of column renaming)
+                numeric_columns = ['NUMBER', 'Length']
+                for col in numeric_columns:
+                    if col in cable_list.columns:
+                        cable_list[col] = cable_list[col].astype('Int64')
+                
+                # Try to load length matrix if available
+                length_matrix = None
+                if 'LengthMatrix' in available_sheets:
+                    print("Reading LengthMatrix sheet...")
+                    length_matrix = pd.read_excel(xls, sheet_name='LengthMatrix', index_col=0)
+                
+                print(f"Successfully loaded {len(cable_list)} records")
                 return cable_list, length_matrix
                 
         except Exception as e:
             print(f"Error loading data: {str(e)}")
+            traceback.print_exc()
             sg.popup_error(f"Error loading file: {str(e)}")
             return None, None
 
@@ -261,15 +396,66 @@ def create_export_options_window():
     return sg.Window('Export Options', layout, finalize=True, modal=True)
 
 def show_settings_window(settings):
-    """Show settings dialog with default file configuration"""
+    """Show settings dialog with comprehensive configuration options"""
     layout = [
-        [sg.Text("Default Excel File:")],
-        [sg.Input(settings.settings['default_file_path'], key='-DEFAULT-FILE-', size=(50, 1)),
-         sg.FileBrowse(file_types=(("Excel Files", "*.xlsx;*.xlsm"),))],
-        [sg.Checkbox("Auto-load default file on startup", 
-                    key='-AUTO-LOAD-',
-                    default=settings.settings['auto_load_default'])],
-        [sg.Button("Save", bind_return_key=True), sg.Button("Cancel")]
+        [sg.Frame('File Settings', [
+            [sg.Text("Default Excel File:", size=(15, 1))],
+            [sg.Input(settings.settings.get('default_file_path', ''), 
+                     key='-DEFAULT-FILE-', 
+                     size=(50, 1)),
+             sg.FileBrowse(file_types=(("Excel Files", "*.xlsx;*.xlsm"),))],
+            [sg.Checkbox("Auto-load default file on startup", 
+                        key='-AUTO-LOAD-',
+                        default=settings.settings.get('auto_load_default', True))]
+        ])],
+        
+        [sg.Frame('Display Settings', [
+            [sg.Text("Table Row Height:", size=(15, 1)),
+             sg.Input(settings.settings.get('row_height', '25'), 
+                     key='-ROW-HEIGHT-', 
+                     size=(5, 1)),
+             sg.Text("pixels")],
+            [sg.Text("Font Size:", size=(15, 1)),
+             sg.Combo(values=[8, 9, 10, 11, 12, 14], 
+                     default_value=settings.settings.get('font_size', 10),
+                     key='-FONT-SIZE-',
+                     size=(5, 1))]
+        ])],
+        
+        [sg.Frame('Color Theme', [
+            [sg.Text("Application Theme:", size=(15, 1)),
+             sg.Combo(values=['Default', 'Dark', 'Light', 'System'], 
+                     default_value=settings.settings.get('theme', 'Default'),
+                     key='-THEME-',
+                     size=(10, 1))],
+            [sg.Text("Table Colors:")],
+            [sg.Text("Background:", size=(12, 1)),
+             sg.Input(settings.settings.get('table_bg', '#232323'), 
+                     key='-TABLE-BG-', 
+                     size=(10, 1)),
+             sg.ColorChooserButton('Pick')],
+            [sg.Text("Alternate Row:", size=(12, 1)),
+             sg.Input(settings.settings.get('table_alt', '#191919'), 
+                     key='-TABLE-ALT-', 
+                     size=(10, 1)),
+             sg.ColorChooserButton('Pick')]
+        ])],
+        
+        [sg.Frame('Startup Behavior', [
+            [sg.Checkbox("Remember window position", 
+                        key='-REMEMBER-POS-',
+                        default=settings.settings.get('remember_position', True))],
+            [sg.Checkbox("Remember last filters", 
+                        key='-REMEMBER-FILTERS-',
+                        default=settings.settings.get('remember_filters', False))],
+            [sg.Checkbox("Show startup tips", 
+                        key='-SHOW-TIPS-',
+                        default=settings.settings.get('show_tips', True))]
+        ])],
+        
+        [sg.Button("Save", bind_return_key=True), 
+         sg.Button("Cancel"),
+         sg.Button("Reset to Defaults")]
     ]
     
     window = sg.Window("Settings", layout, modal=True, finalize=True)
@@ -277,13 +463,47 @@ def show_settings_window(settings):
     
     while True:
         event, values = window.read()
+        
         if event in (sg.WIN_CLOSED, "Cancel"):
             break
+            
+        if event == "Reset to Defaults":
+            # Confirm before resetting
+            if sg.popup_yes_no("Are you sure you want to reset all settings to defaults?",
+                             title="Confirm Reset") == "Yes":
+                settings.settings = DEFAULT_SETTINGS.copy()
+                settings.save_settings()
+                break
+        
         if event == "Save":
-            settings.settings['default_file_path'] = values['-DEFAULT-FILE-']
-            settings.settings['auto_load_default'] = values['-AUTO-LOAD-']
-            settings.save_settings()
-            break
+            try:
+                # Validate numeric inputs
+                row_height = int(values['-ROW-HEIGHT-'])
+                if not (10 <= row_height <= 100):
+                    raise ValueError("Row height must be between 10 and 100")
+                
+                # Update settings
+                settings.settings.update({
+                    'default_file_path': values['-DEFAULT-FILE-'],
+                    'auto_load_default': values['-AUTO-LOAD-'],
+                    'row_height': row_height,
+                    'font_size': values['-FONT-SIZE-'],
+                    'theme': values['-THEME-'],
+                    'table_bg': values['-TABLE-BG-'],
+                    'table_alt': values['-TABLE-ALT-'],
+                    'remember_position': values['-REMEMBER-POS-'],
+                    'remember_filters': values['-REMEMBER-FILTERS-'],
+                    'show_tips': values['-SHOW-TIPS-']
+                })
+                
+                settings.save_settings()
+                sg.popup("Settings saved successfully!", title="Success")
+                break
+                
+            except ValueError as e:
+                sg.popup_error(f"Invalid input: {str(e)}", title="Error")
+            except Exception as e:
+                sg.popup_error(f"Error saving settings: {str(e)}", title="Error")
     
     window.close()
 
@@ -513,15 +733,74 @@ class CableDatabaseApp:
         self.ui_builder = UIBuilder()
         self.window = None
         self.event_handler = None
+        
+        # Check if this is first run (no default file path set)
+        if not self.settings.settings.get('default_file_path'):
+            self.show_first_run_dialog()
+    
+    def show_first_run_dialog(self):
+        """Show first-run dialog to set up initial settings"""
+        layout = [
+            [sg.Text("Welcome to Cable Database Interface!", font=('Any', 12, 'bold'))],
+            [sg.Text("Please select your Excel file to get started:")],
+            [sg.Input(key='-DEFAULT-FILE-', size=(50, 1)),
+             sg.FileBrowse(file_types=(("Excel Files", "*.xlsx;*.xlsm"),))],
+            [sg.Checkbox("Auto-load this file on startup", 
+                        key='-AUTO-LOAD-', default=True)],
+            [sg.Button("Save"), sg.Button("Skip")]
+        ]
+        
+        window = sg.Window("First Time Setup", layout, modal=True, finalize=True)
+        
+        while True:
+            event, values = window.read()
+            
+            if event in (sg.WIN_CLOSED, "Skip"):
+                break
+                
+            if event == "Save":
+                if values['-DEFAULT-FILE-']:
+                    self.settings.settings.update({
+                        'default_file_path': values['-DEFAULT-FILE-'],
+                        'auto_load_default': values['-AUTO-LOAD-']
+                    })
+                    self.settings.save_settings()
+                    sg.popup("Settings saved successfully!", title="Success")
+                    break
+                else:
+                    sg.popup_error("Please select an Excel file.", title="Error")
+        
+        window.close()
     
     def initialize(self):
         """Initialize the application"""
-        if not self.data_manager.load_data(
-            self.settings.settings['default_file_path'],
+        # First try to load data
+        load_success = self.data_manager.load_data(
+            self.settings.settings.get('default_file_path', ''),
             self.settings,
-            show_dialog=not self.settings.settings['auto_load_default']
-        ):
-            sg.popup_error("Failed to load data. Please check the file path and try again.")
+            show_dialog=not self.settings.settings.get('auto_load_default', True)
+        )
+        
+        if not load_success:
+            # If loading fails, show file selection dialog
+            response = sg.popup_yes_no(
+                "Failed to load data file. Would you like to select a file now?",
+                title="Load Error"
+            )
+            if response == "Yes":
+                file_path = sg.popup_get_file(
+                    'Select Excel file',
+                    file_types=(("Excel Files", "*.xls*"),),
+                    initial_folder=self.settings.settings.get('last_directory', '')
+                )
+                if file_path:
+                    self.settings.settings['default_file_path'] = file_path
+                    self.settings.settings['last_directory'] = str(Path(file_path).parent)
+                    self.settings.save_settings()
+                    load_success = self.data_manager.load_data(file_path, self.settings, False)
+        
+        if not load_success:
+            sg.popup_error("Could not load any data file. Application will close.")
             return False
             
         layout, headers = self.ui_builder.create_main_layout()
