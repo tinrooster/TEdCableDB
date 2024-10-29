@@ -58,39 +58,40 @@ def save_column_mapping(mapping: Dict[str, str]):
     with open(settings_path, 'w') as f:
         json.dump(mapping, f, indent=4)
 
-def show_column_mapping_dialog(excel_columns: List[str], required_columns: List[str]) -> Dict[str, str]:
+def show_column_mapping_dialog(excel_columns: List[str], missing_columns: List[str]) -> Optional[Dict[str, str]]:
     """Show dialog for mapping Excel columns to required database fields"""
     layout = [
-        [sg.Text("Map Your Excel Columns to Required Fields", font=('Any', 12, 'bold'))],
-        [sg.Text("Please match each required field with the corresponding column from your Excel file:")],
+        [sg.Text("Column Mapping Required", font=('Any', 12, 'bold'))],
+        [sg.Text("Some required columns are missing. Please map them to existing columns:")],
         [sg.Text("_" * 80)],
     ]
     
-    # Create mapping inputs for each required column
+    # Create mapping inputs for each missing column
     mappings = {}
-    for req_col in required_columns:
+    for col in missing_columns:
         # Try to find a close match in excel_columns
         default_match = next(
-            (col for col in excel_columns 
-             if col.upper().replace(" ", "") == req_col.upper().replace(" ", "")),
+            (ecol for ecol in excel_columns 
+             if col.lower().replace(" ", "") in ecol.lower().replace(" ", "")),
             excel_columns[0] if excel_columns else ""
         )
         
         layout.append([
-            sg.Text(f"{req_col}:", size=(15, 1)),
+            sg.Text(f"{col}:", size=(15, 1)),
             sg.Combo(
                 excel_columns,
                 default_value=default_match,
-                key=f'-MAP-{req_col}-',
-                size=(30, 1)
+                key=f'-MAP-{col}-',
+                size=(30, 1),
+                enable_events=True
             ),
-            sg.Checkbox("Skip this field", key=f'-SKIP-{req_col}-')
+            sg.Checkbox("Skip this column", key=f'-SKIP-{col}-', enable_events=True)
         ])
     
     layout.extend([
         [sg.Text("_" * 80)],
-        [sg.Checkbox("Save this mapping for future use", key='-SAVE-MAPPING-', default=True)],
-        [sg.Button("Apply Mapping"), sg.Button("Cancel")]
+        [sg.Button("Apply Mapping"), sg.Button("Cancel")],
+        [sg.Text("Note: Skipped columns will be created as empty", font=('Any', 9, 'italic'))]
     ])
     
     window = sg.Window("Column Mapping", layout, modal=True, finalize=True)
@@ -102,18 +103,20 @@ def show_column_mapping_dialog(excel_columns: List[str], required_columns: List[
             window.close()
             return None
             
+        # Handle checkbox events to disable/enable combos
+        if event.startswith('-SKIP-'):
+            col = event.replace('-SKIP-', '').replace('-', ' ')
+            window[f'-MAP-{col}-'].update(disabled=values[event])
+            continue
+            
         if event == "Apply Mapping":
             # Create mapping dictionary
             mapping = {}
-            for req_col in required_columns:
-                if not values[f'-SKIP-{req_col}-']:  # If field is not skipped
-                    excel_col = values[f'-MAP-{req_col}-']
-                    if excel_col:
-                        mapping[req_col] = excel_col
-            
-            # Save mapping if requested
-            if values['-SAVE-MAPPING-']:
-                save_column_mapping(mapping)
+            for col in missing_columns:
+                if not values[f'-SKIP-{col}-']:  # If not skipped
+                    excel_col = values[f'-MAP-{col}-']
+                    if excel_col:  # If a mapping was selected
+                        mapping[excel_col] = col
             
             window.close()
             return mapping
@@ -205,11 +208,58 @@ class DataManager:
     def __init__(self):
         self.df = None
         self.original_df = None
+        self.filtered_df = None  # Add this to track filtered state
+        self.current_filters = {}  # Track active filters
         self.expected_columns = [
             'NUMBER', 'DWG', 'ORIGIN', 'DEST', 
             'Alternate Dwg', 'Wire Type', 'Length', 
             'Note', 'ProjectID'
         ]
+        # Define the expected column names
+        self.column_names = {
+            'NUMBER': 'NUMBER',
+            'DWG': 'DWG',
+            'ORIGIN': 'ORIGIN',
+            'DEST': 'DEST',
+            'Wire Type': 'Wire Type',
+            'Length': 'Length',
+            'Project ID': 'ProjectID'  # This was the issue - actual column name is 'ProjectID'
+        }
+
+    def normalize_length(self, length_value: Any) -> str:
+        """Normalize length values, preserving text annotations"""
+        if pd.isna(length_value):
+            return ''
+            
+        # Convert to string and clean up
+        length_str = str(length_value).strip().upper()
+        
+        # Try to extract numeric portion
+        numeric_part = ''.join(c for c in length_str if c.isdigit() or c == '.')
+        text_part = ''.join(c for c in length_str if not c.isdigit() and c != '.')
+        
+        try:
+            if numeric_part:
+                # Convert to integer if possible
+                num = int(float(numeric_part))
+                return f"{num}{text_part}"
+            return length_str
+        except ValueError:
+            return length_str
+
+    def format_number(self, value) -> str:
+        """Format NUMBER field to 10-digit string with leading zeros"""
+        try:
+            if pd.isna(value) or value == '' or value is None:
+                return '0000000000'
+            
+            # Remove any existing leading zeros and non-numeric characters
+            clean_num = ''.join(filter(str.isdigit, str(value)))
+            # Pad with zeros to 10 digits
+            return clean_num.zfill(10)
+        except (ValueError, TypeError):
+            print(f"Warning: Invalid NUMBER value: {value}")
+            return '0000000000'
 
     def load_data(self, filename: str, settings) -> bool:
         """Load data from Excel file"""
@@ -235,14 +285,37 @@ class DataManager:
             print(f"Reading {sheet_name} sheet...")
             df = pd.read_excel(filename, sheet_name=sheet_name)
             
-            # Handle missing ProjectID column
-            if 'ProjectID' not in df.columns:
-                df['ProjectID'] = ''  # Add empty column
-                print("Added empty ProjectID column")
+            # Ensure NUMBER is properly formatted
+            if 'NUMBER' in df.columns:
+                df['NUMBER'] = df['NUMBER'].apply(self.format_number)
+                print("NUMBER column formatted with leading zeros")
+            
+            # Normalize Length values
+            if 'Length' in df.columns:
+                df['Length'] = df['Length'].apply(self.normalize_length)
+            
+            # Check for missing columns
+            missing_cols = [col for col in self.expected_columns if col not in df.columns]
+            if missing_cols:
+                print(f"Missing columns: {missing_cols}")
+                mapping = show_column_mapping_dialog(df.columns.tolist(), missing_cols)
+                
+                if mapping:
+                    # Rename columns according to mapping
+                    df = df.rename(columns=mapping)
+                    
+                    # Add any remaining missing columns as empty
+                    remaining_missing = [col for col in missing_cols 
+                                      if col not in df.columns]
+                    for col in remaining_missing:
+                        print(f"Adding empty column: {col}")
+                        df[col] = ''
+                else:
+                    print("Column mapping cancelled")
+                    return False
 
-            # Keep only required columns that exist
-            available_cols = [col for col in self.expected_columns if col in df.columns]
-            self.df = df[available_cols].copy()
+            # Keep only expected columns in the correct order
+            self.df = df[self.expected_columns].copy()
             self.original_df = self.df.copy()
             
             print(f"Successfully loaded {len(self.df)} records")
@@ -402,56 +475,48 @@ class DataManager:
             sg.popup_error(f"Error loading file: {str(e)}")
             return None, None
 
-    def apply_filters(self, filters: Dict[str, Any], use_exact: bool = False, use_fuzzy: bool = False) -> pd.DataFrame:
-        """Apply filters to the dataframe"""
+    def apply_filters(self, filters: Dict[str, Any], use_exact: bool = False, 
+                     use_fuzzy: bool = False) -> pd.DataFrame:
+        """Apply filters and store the filtered state"""
         if self.df is None:
             return pd.DataFrame()
             
+        self.current_filters = filters  # Store current filters
         filtered_df = self.df.copy()
         
         for field, value in filters.items():
-            if not value:  # Skip empty filters
+            if not value:
                 continue
                 
             if field == 'NUMBER':
-                # Handle number range separately
-                start = value.get('start', '')
-                end = value.get('end', '')
+                start = value.get('start', '').strip()
+                end = value.get('end', '').strip()
+                
                 if start:
-                    filtered_df = filtered_df[filtered_df['NUMBER'] >= start]
+                    start = self.format_number(start)
+                    # Use string comparison with proper zero padding
+                    filtered_df = filtered_df[filtered_df['NUMBER'].astype(str).str.zfill(10) >= start]
                 if end:
-                    filtered_df = filtered_df[filtered_df['NUMBER'] <= end]
-                continue
-                
-            # For all other fields
-            search_value = str(value).strip()
-            if not search_value:
-                continue
-                
-            if use_exact:
-                # Exact match takes precedence over fuzzy
-                filtered_df = filtered_df[filtered_df[field].astype(str).str.upper() == search_value.upper()]
-            elif use_fuzzy:
-                # Fuzzy search using partial string matching
-                filtered_df = filtered_df[
-                    filtered_df[field].astype(str).str.contains(
-                        search_value, 
-                        case=False, 
-                        na=False, 
-                        regex=False
-                    )
-                ]
+                    end = self.format_number(end)
+                    filtered_df = filtered_df[filtered_df['NUMBER'].astype(str).str.zfill(10) <= end]
+            
+            elif field == 'Length':
+                search_value = str(value).strip()
+                if use_exact:
+                    filtered_df = filtered_df[filtered_df['Length'].astype(str) == search_value]
+                else:
+                    filtered_df = filtered_df[filtered_df['Length'].astype(str).str.contains(search_value, case=False, na=False)]
+            
             else:
-                # Default behavior: case-insensitive contains
-                filtered_df = filtered_df[
-                    filtered_df[field].astype(str).str.contains(
-                        search_value, 
-                        case=False, 
-                        na=False, 
-                        regex=False
-                    )
-                ]
-        
+                if use_exact:
+                    filtered_df = filtered_df[filtered_df[field].astype(str) == str(value)]
+                elif use_fuzzy:
+                    filtered_df = filtered_df[filtered_df[field].astype(str).apply(
+                        lambda x: fuzz.partial_ratio(str(x).lower(), str(value).lower()) > 80)]
+                else:
+                    filtered_df = filtered_df[filtered_df[field].astype(str).str.contains(str(value), case=False, na=False)]
+
+        self.filtered_df = filtered_df  # Store filtered result
         return filtered_df
 
     def _fuzzy_match(self, text: str, pattern: str, threshold: int = 80) -> bool:
@@ -484,18 +549,57 @@ class DataManager:
         
         return False
 
-    def group_by_field(self, field: str) -> Dict[str, int]:
-        """Group records by field and count occurrences"""
+    def group_by_field(self, field: str) -> pd.DataFrame:
+        """Group data by field while maintaining original order within groups"""
         if self.df is None or field not in self.df.columns:
-            return {}
+            return self.df
+
+        try:
+            # Store original order
+            self.df['_original_index'] = range(len(self.df))
             
-        # Group by the field, handling both string and non-string data
-        grouped = self.df[field].astype(str).value_counts()
-        
-        # Convert to dictionary and sort by value (count)
-        result = dict(sorted(grouped.items(), key=lambda x: (-x[1], x[0].lower())))
-        
-        return result
+            # Create groups but maintain order within each group
+            grouped = self.df.groupby(field, sort=False) \
+                            .apply(lambda x: x.sort_values('_original_index')) \
+                            .reset_index(drop=True)
+            
+            # Remove helper column
+            grouped = grouped.drop('_original_index', axis=1)
+            
+            # Calculate group statistics for display
+            group_stats = self.df.groupby(field, sort=False).size()
+            print(f"Groups created: {dict(group_stats)}")
+            
+            return grouped
+
+        except Exception as e:
+            print(f"Error in grouping: {str(e)}")
+            traceback.print_exc()
+            return self.df
+
+    def handle_group_event(self, values: Dict[str, Any]) -> None:
+        """Handle grouping event"""
+        group_by = values.get('-GROUP-BY-')
+        if not group_by or self.df is None:
+            return
+
+        try:
+            print(f"Grouping by: {group_by}")
+            self.df = self.group_by_field(group_by)
+            
+            # Update display
+            if hasattr(self, 'window'):
+                self.window['-TABLE-'].update(values=self.df.values.tolist())
+                
+                # Show group statistics
+                group_counts = self.df.groupby(group_by, sort=False).size()
+                group_display = "\n".join([f"{k}: {v}" for k, v in group_counts.items()])
+                if '-GROUP-DISPLAY-' in self.window.AllKeysDict:
+                    self.window['-GROUP-DISPLAY-'].update(group_display)
+            
+        except Exception as e:
+            print(f"Error handling group event: {str(e)}")
+            traceback.print_exc()
 
     def update_filtered_data(self, filters: Dict[str, str], use_fuzzy: bool = False) -> Tuple[List[List], List[str]]:
         """Update filtered data based on current filters"""
@@ -509,17 +613,67 @@ class DataManager:
         
         return values, headers
 
+    def handle_sort(self, sort_by: str, ascending: bool = True) -> bool:
+        """Handle sorting with column name validation"""
+        try:
+            working_df = self.filtered_df if self.filtered_df is not None else self.df
+            if working_df is None:
+                return False
+
+            # Map UI column name to actual DataFrame column name
+            actual_column = self.column_names.get(sort_by, sort_by)
+            
+            if actual_column not in working_df.columns:
+                print(f"Warning: Column '{sort_by}' not found. Available columns: {working_df.columns.tolist()}")
+                return False
+
+            sorted_df = working_df.sort_values(by=actual_column, ascending=ascending)
+            
+            if self.filtered_df is not None:
+                self.filtered_df = sorted_df
+            else:
+                self.df = sorted_df
+            return True
+
+        except Exception as e:
+            print(f"Error in sorting: {str(e)}")
+            traceback.print_exc()
+            return False
+
     def apply_sorting(self, df, sort_column, ascending=True):
         """Apply sorting to the dataframe"""
         if sort_column:
             return df.sort_values(by=sort_column, ascending=ascending)
         return df
 
-    def apply_grouping(self, df, group_by):
-        """Apply grouping to the dataframe"""
-        if group_by:
-            return df.sort_values(by=group_by)
-        return df
+    def apply_grouping(self, group_by: str) -> bool:
+        """Apply grouping while maintaining filtered state"""
+        # Work with filtered_df if it exists, otherwise use full df
+        working_df = self.filtered_df if self.filtered_df is not None else self.df
+        
+        if working_df is None or group_by not in working_df.columns:
+            print(f"Cannot group: invalid column {group_by}")
+            return False
+            
+        try:
+            print(f"Sorting by group column: {group_by}")
+            
+            # Sort the working dataset
+            sorted_df = working_df.sort_values(by=group_by, na_position='first')
+            
+            # Update the appropriate dataframe
+            if self.filtered_df is not None:
+                self.filtered_df = sorted_df
+            else:
+                self.df = sorted_df
+                
+            print(f"Grouped data has {len(sorted_df)} rows")
+            return True
+            
+        except Exception as e:
+            print(f"Error in grouping: {str(e)}")
+            traceback.print_exc()
+            return False
 
     def get_filter_values(self, values: Dict[str, Any]) -> Dict[str, str]:
         """Get filter values from UI values dictionary"""
@@ -601,6 +755,15 @@ class DataManager:
             print(f"Error loading file: {str(e)}")
             traceback.print_exc()  # Print full stack trace
             return False
+
+    def reset_grouping(self) -> None:
+        """Reset to original order while maintaining filters"""
+        if hasattr(self, 'original_df'):
+            print("Resetting to original order")
+            self.df = self.original_df.copy()
+            # Reapply filters if they exist
+            if self.current_filters:
+                self.apply_filters(self.current_filters)
 
 def show_color_config_window(settings):
     """Show color configuration window"""
@@ -815,16 +978,25 @@ class EventHandler:
     def update_table(self):
         """Update the table display with current data"""
         try:
-            if self.data_manager.df is not None:
-                self.window['-TABLE-'].update(values=self.data_manager.df.values.tolist())
-                self.window['-RECORD-COUNT-'].update(f'Records: {len(self.data_manager.df)}')
+            display_df = self.data_manager.filtered_df if self.data_manager.filtered_df is not None else self.data_manager.df
+            if display_df is not None:
+                self.window['-TABLE-'].update(values=display_df.values.tolist())
+                self.window['-RECORD-COUNT-'].update(f'Records: {len(display_df)}')
+                self.update_status('Table updated successfully')
         except Exception as e:
             print(f"Error updating table: {str(e)}")
-            traceback.print_exc()
+            self.update_status(f'Error: {str(e)}')
 
     def handle_event(self, event: str, values: Dict[str, Any]) -> bool:
         """Handle all events"""
         try:
+            # Handle input validation
+            if event in ('-NUM-START-', '-NUM-END-'):
+                if not self.validate_input(event, values[event]):
+                    # Clear invalid input
+                    self.window[event].update('')
+                    return True
+
             # Handle table clicks
             if isinstance(event, tuple) and event[0] == '-TABLE-':
                 return True
@@ -832,22 +1004,26 @@ class EventHandler:
             # Handle sort events
             if event == '-APPLY-SORT-':
                 sort_by = values.get('-SORT-BY-')
-                if sort_by and self.data_manager.df is not None:
+                if sort_by:
                     ascending = values.get('-SORT-ASC-', True)
-                    self.data_manager.df.sort_values(
-                        by=sort_by,
-                        ascending=ascending,
-                        inplace=True
-                    )
-                    self.update_table()
+                    if self.data_manager.handle_sort(sort_by, ascending):
+                        self.update_table()
+                    else:
+                        print(f"Failed to sort by {sort_by}")
                 return True
 
             # Handle group events
             if event == '-APPLY-GROUP-':
                 group_by = values.get('-GROUP-BY-')
-                if group_by and self.data_manager.df is not None:
-                    self.data_manager.df = self.data_manager.df.groupby(group_by).agg(list).reset_index()
-                    self.update_table()
+                if group_by:
+                    success = self.data_manager.apply_grouping(group_by)
+                    if success:
+                        self.update_table()
+                return True
+
+            elif event == '-RESET-GROUP-':
+                self.data_manager.reset_grouping()
+                self.update_table()
                 return True
 
             # Handle filter events
@@ -969,11 +1145,35 @@ class EventHandler:
         
         return False
 
+    def validate_input(self, key: str, value: str) -> bool:
+        """Validate input fields"""
+        if not value:
+            return True
+            
+        if key == '-NUM-START-' or key == '-NUM-END-':
+            # Allow only digits for NUMBER fields
+            if not value.isdigit():
+                sg.popup_error('Please enter only digits for NUMBER field', title='Input Error')
+                return False
+            if len(value) > 10:
+                sg.popup_error('NUMBER cannot exceed 10 digits', title='Input Error')
+                return False
+        
+        return True
+
+    def update_status(self, message: str) -> None:
+        """Update status bar with message"""
+        try:
+            if self.window is not None:
+                self.window['-STATUS-TEXT-'].update(message)
+        except Exception as e:
+            print(f"Error updating status: {str(e)}")
+
 class UIBuilder:
     def __init__(self):
         self.constants = UI_CONSTANTS
         self.filter_keys = {
-            'NUMBER': '-NUM-START-',  # Single key for number filter
+            'NUMBER': '-NUM-START-',
             'DWG': '-DWG-',
             'ORIGIN': '-ORIGIN-',
             'DEST': '-DEST-',
@@ -982,50 +1182,64 @@ class UIBuilder:
             'Project ID': '-PROJECT-'
         }
 
-    def create_filter_input(self, key, label):
-        """Standardized filter input creation"""
+    def create_filter_frame(self):
+        """Create the filter section of the UI"""
         return [
-            sg.Text(label, size=self.constants['LABEL_SIZE']),
-            sg.Input(size=self.constants['INPUT_SIZE'], 
-                    key=key, 
-                    enable_events=True),
-            sg.Checkbox('Exact', key=f'{key}EXACT-')
+            [sg.Checkbox('Exact', key='-EXACT-'),
+             sg.Checkbox('Fuzzy Search', key='-FUZZY-SEARCH-')],
+            [sg.Text('NUMBER:', size=(8, 1)),
+             sg.Input(key='-NUM-START-', size=(10, 1)),
+             sg.Text('to'),
+             sg.Input(key='-NUM-END-', size=(10, 1))],
+            [sg.Text('DWG:', size=(8, 1)),
+             sg.Input(key='-DWG-', size=(25, 1))],
+            [sg.Text('ORIGIN:', size=(8, 1)),
+             sg.Input(key='-ORIGIN-', size=(25, 1))],
+            [sg.Text('DEST:', size=(8, 1)),
+             sg.Input(key='-DEST-', size=(25, 1))],
+            [sg.Text('Wire Type:', size=(8, 1)),
+             sg.Input(key='-WIRE-TYPE-', size=(25, 1))],
+            [sg.Text('Length:', size=(8, 1)),
+             sg.Input(key='-LENGTH-', size=(25, 1))],
+            [sg.Text('Project ID:', size=(8, 1)),
+             sg.Input(key='-PROJECT-', size=(25, 1))],
+            [sg.Button('Filter', key='-APPLY-FILTER-'),
+             sg.Button('Clear Filter', key='-CLEAR-FILTER-')]
         ]
-    
-    def create_menu(self):
-        """Standardized menu creation"""
-        menu_def = [
-            ['&File', [
-                'Open::open_key\tCtrl+O', 
-                'Save\tCtrl+S', 
-                'Settings\tCtrl+,', 
-                '---',  # Separator
-                'E&xit\tAlt+F4'
-            ]],
-            ['&Actions', [
-                'Clear &Filters\tCtrl+F', 
-                'Clear &Groups\tCtrl+G'
-            ]],
-            ['&Colors', [
-                'Default\tCtrl+D', 
-                'Dark\tCtrl+K', 
-                'Light\tCtrl+L'
-            ]],
-            ['&Help', ['About\tF1']]
+
+    def create_sort_group_frame(self):
+        """Create the sort and group section of the UI"""
+        return [
+            [sg.Text('Sort By:'),
+             sg.Combo(
+                 values=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 
+                        'Wire Type', 'Length', 'Project ID'],
+                 key='-SORT-BY-',
+                 size=(15, 1)
+             )],
+            [sg.Radio('Sort Up', 'SORT', key='-SORT-ASC-', default=True),
+             sg.Radio('Sort Down', 'SORT', key='-SORT-DESC-'),
+             sg.Button('Sort', key='-APPLY-SORT-')],
+            [sg.Text('Group By:'),
+             sg.Combo(
+                 values=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 
+                        'Wire Type', 'Length', 'Project ID'],
+                 key='-GROUP-BY-',
+                 size=(15, 1)
+             )],
+            [sg.Button('Apply Grouping', key='-APPLY-GROUP-'),
+             sg.Button('Reset Grouping', key='-RESET-GROUP-')]
         ]
-        return sg.Menu(menu_def, key='-MENU-', tearoff=False,
-                      background_color='white', text_color='black',
-                      font=('Arial', 10), pad=(0,0))
-    
+
     def create_main_layout(self):
         """Create the main application layout"""
-        # Menu definition - using standard sg.Menu instead of MenubarCustom
+        # Menu definition
         menu_def = [
             ['&File', [
                 'Open::open_key', 
                 'Save', 
                 'Settings', 
-                '---',  # Separator
+                '---',
                 'E&xit'
             ]],
             ['&Actions', [
@@ -1040,82 +1254,50 @@ class UIBuilder:
             ['&Help', ['About']]
         ]
 
-        # Filter frame - without border and label
-        filter_frame = [
-            [sg.Checkbox('Exact', key='-EXACT-'), 
-             sg.Checkbox('Fuzzy Search', key='-FUZZY-SEARCH-')],
-            [sg.Text('NUMBER:', size=(8, 1)), 
-             sg.Input(size=(8, 1), key='-NUM-START-'),
-             sg.Input(size=(8, 1), key='-NUM-END-')],
-            [sg.Text('DWG:', size=(8, 1)), 
-             sg.Input(size=(15, 1), key='-DWG-')],
-            [sg.Text('ORIGIN:', size=(8, 1)), 
-             sg.Input(size=(15, 1), key='-ORIGIN-')],
-            [sg.Text('DEST:', size=(8, 1)), 
-             sg.Input(size=(15, 1), key='-DEST-')],
-            [sg.Text('Wire Type:', size=(8, 1)), 
-             sg.Input(size=(15, 1), key='-WIRE-TYPE-')],
-            [sg.Text('Length:', size=(8, 1)), 
-             sg.Input(size=(15, 1), key='-LENGTH-')],
-            [sg.Text('Note:', size=(8, 1)), 
-             sg.Input(size=(15, 1), key='-NOTE-')],
-            [sg.Text('Project ID:', size=(8, 1)), 
-             sg.Input(size=(15, 1), key='-PROJECT-')]
+        # Table with adjusted column widths
+        table = sg.Table(
+            values=[],
+            headings=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate DWG', 
+                     'Wire Type', 'Length', 'Note', 'Project ID'],
+            auto_size_columns=False,
+            col_widths=[10, 15, 15, 15, 15, 15, 10, 20, 15],
+            justification='left',
+            key='-TABLE-',
+            enable_events=True,
+            expand_x=True,
+            expand_y=True,
+            enable_click_events=True,
+            row_colors=((0, '#191919'), (1, '#212121')),
+            text_color='white',
+            background_color='#191919',
+            pad=(10, 10)
+        )
+
+        # Add status bar at the bottom
+        status_bar = [
+            sg.Text('Records: 0', key='-RECORD-COUNT-', size=(20, 1)),
+            sg.Text('', key='-STATUS-TEXT-', size=(50, 1))  # Changed key name
         ]
 
-        # Sort and Group controls with increased vertical padding
-        sort_group_controls = [
-            [sg.Text('Sort By:', size=(8, 1)),
-             sg.Combo(
-                 values=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Project ID'],
-                 key='-SORT-BY-',
-                 size=(15, 1)
-             )],
-            [sg.Radio('Sort Up', 'SORT', key='-SORT-ASC-', default=True),
-             sg.Radio('Sort Down', 'SORT', key='-SORT-DESC-'),
-             sg.Button('Sort', key='-APPLY-SORT-', size=(8, 1))],
-            [sg.VPush()],  # Add vertical spacing
-            [sg.Text('Group By:', size=(8, 1)),
-             sg.Combo(
-                 values=['DWG', 'ORIGIN', 'DEST', 'Project ID'],
-                 key='-GROUP-BY-',
-                 size=(15, 1)
-             )],
-            [sg.Button('Apply Grouping', key='-APPLY-GROUP-', size=(12, 1)),
-             sg.Button('Reset Grouping', key='-RESET-GROUP-', size=(12, 1))],
-            [sg.VPush()],  # Add vertical spacing
-            [sg.Button('Filter', key='-APPLY-FILTER-', size=(8, 1), pad=((0, 10), (20, 0))),
-             sg.Button('Clear Filter', key='-CLEAR-FILTER-', size=(8, 1), pad=((0, 0), (20, 0)))]
-        ]
-
-        # Main layout with side-by-side arrangement
+        # Main layout
         layout = [
             [sg.Menu(menu_def, key='-MENU-', tearoff=False)],
             [sg.Column(
-                [[sg.Frame('', filter_frame, relief=sg.RELIEF_FLAT)],
-                 [sg.Frame('Sort and Group', sort_group_controls)]],
-                pad=((10, 10), (10, 10))
-            )],
-            [sg.Text('Records:', key='-RECORD-COUNT-', pad=(10, 5)),
-             sg.Text('', key='-STATUS-', pad=(10, 5))],  # Add status line
-            [sg.Table(
-                values=[],
-                headings=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate DWG', 
-                         'Wire Type', 'Length', 'Note', 'Project ID'],
-                auto_size_columns=True,
-                justification='left',
-                key='-TABLE-',
-                enable_events=True,
+                [
+                    [sg.Frame('Filters', self.create_filter_frame(), pad=(10, 10))],
+                    [sg.Frame('Sort and Group', self.create_sort_group_frame(), pad=(10, 10))]
+                ],
+                pad=(10, 10)
+            ),
+            sg.Column(
+                [[table]],
                 expand_x=True,
                 expand_y=True,
-                enable_click_events=True,
-                row_colors=((0, '#191919'), (1, '#212121')),
-                text_color='white',
-                background_color='#191919',
                 pad=(10, 10)
-            )]
+            )],
+            status_bar  # Add status bar to layout
         ]
-        
+
         return layout
 
     def create_window(self):
@@ -1148,93 +1330,67 @@ class UIBuilder:
 
 class CableDatabaseApp:
     def __init__(self):
+        print("Application starting...")
         print("Starting initialization...")
-        try:
-            # Initialize basic components first
-            self.settings = Settings()
-            self.data_manager = DataManager()
-            self.ui_builder = UIBuilder()
-            sg.theme('DarkGrey13')
-            
-            # Create window
-            print("Creating window...")
-            self.window = self.ui_builder.create_window()
-            
-            # Create event handler after window is created
-            print("Creating event handler...")
-            self.event_handler = EventHandler(self.window, self.data_manager)
-            
-            # Try to load default file if exists
-            self.load_initial_file()
-            
-            print("Initialization complete")
-            
-        except Exception as e:
-            print(f"Initialization error: {str(e)}")
-            traceback.print_exc()
-            raise
+        self.settings = Settings()
+        self.data_manager = DataManager()
+        self.ui_builder = UIBuilder()
+        print("Creating window...")
+        self.window = self.ui_builder.create_window()
+        self.event_handler = EventHandler(self.window, self.data_manager)
+        print("Initialization complete")
 
-    def load_initial_file(self):
-        """Attempt to load the default file on startup"""
+    def update_status(self, message: str) -> None:
+        """Update status bar message"""
         try:
-            default_path = self.settings.settings.get('default_db_path', '')
-            if default_path and os.path.exists(default_path):
-                print(f"Loading default file: {default_path}")
-                if self.data_manager.load_data(default_path, self.settings):
-                    print("Default file loaded successfully")
-                    # Update table with loaded data
-                    if self.data_manager.df is not None:
-                        self.window['-TABLE-'].update(values=self.data_manager.df.values.tolist())
-                        self.window['-RECORD-COUNT-'].update(f'Records: {len(self.data_manager.df)}')
-                        self.window['-STATUS-'].update('Data loaded successfully')
-                else:
-                    print("Failed to load default file")
-                    self.window['-STATUS-'].update('Failed to load default file')
-            else:
-                print("No default file found or file doesn't exist")
-                self.window['-STATUS-'].update('No default file loaded')
+            if hasattr(self, 'window') and self.window is not None:
+                self.window['-STATUS-TEXT-'].update(message)
         except Exception as e:
-            print(f"Error loading initial file: {str(e)}")
-            traceback.print_exc()
-            self.window['-STATUS-'].update('Error loading file')
+            print(f"Error updating status: {str(e)}")
 
     def run(self):
         """Main application loop"""
-        print("Starting main application loop...")
         try:
+            # Load initial file if configured
+            self.load_initial_file()
+            
             while True:
                 event, values = self.window.read()
-                print(f"Event received: {event}")  # Debug line
+                print(f"Event received: {event}")
                 
-                if event in (sg.WIN_CLOSED, 'Exit', None):
+                if event in (None, 'Exit'):
                     print("Exit condition met")
                     break
-                
-                # Handle file-related events
-                if event == 'Open::open_key':
-                    filename = sg.popup_get_file(
-                        'Select Excel file',
-                        file_types=(("Excel Files", "*.xlsx;*.xlsm"),),
-                        initial_folder=self.settings.settings.get('last_directory', '')
-                    )
-                    if filename:
-                        if self.data_manager.load_data(filename, self.settings):
-                            self.window['-TABLE-'].update(values=self.data_manager.df.values.tolist())
-                            self.window['-RECORD-COUNT-'].update(f'Records: {len(self.data_manager.df)}')
-                            self.window['-STATUS-'].update('File loaded successfully')
-                            # Update settings
-                            self.settings.settings['last_directory'] = os.path.dirname(filename)
-                            self.settings.save_settings()
-                
-                # Handle other events through event handler
-                self.event_handler.handle_event(event, values)
-                
-        except Exception as e:
-            print(f"Error in main loop: {str(e)}")
-            traceback.print_exc()
-        finally:
+                    
+                # Handle events
+                if not self.event_handler.handle_event(event, values):
+                    break
+                    
             print("Closing window...")
             self.window.close()
+            print("App run completed")
+            
+        except Exception as e:
+            print(f"Critical error in run: {str(e)}")
+            traceback.print_exc()
+            if hasattr(self, 'window') and self.window is not None:
+                self.window.close()
+
+    def load_initial_file(self) -> None:
+        """Load initial file if configured"""
+        try:
+            default_file = self.settings.settings.get('default_file_path', '')
+            if default_file and os.path.exists(default_file):
+                if self.data_manager.load_file(default_file):
+                    self.update_status('File loaded successfully')
+                    self.event_handler.update_table()
+                else:
+                    self.update_status('Error loading default file')
+            else:
+                self.update_status('No default file loaded')
+        except Exception as e:
+            print(f"Error in load_initial_file: {str(e)}")
+            self.update_status(f'Error: {str(e)}')
 
 if __name__ == "__main__":
     print("Application starting...")
@@ -1249,7 +1405,6 @@ if __name__ == "__main__":
         sg.popup_error(f"Critical Error: {str(e)}")
     
     
-
 
 
 
