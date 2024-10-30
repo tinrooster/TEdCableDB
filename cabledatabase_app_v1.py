@@ -956,7 +956,20 @@ def create_export_options_window():
                    key='-EXPORT-COLS-')],
         [sg.Button('Export'), sg.Button('Cancel')]
     ]
-    return sg.Window('Export Options', layout, finalize=True, modal=True)
+
+    window = sg.Window('Export Options', layout, finalize=True, modal=True)
+    
+    while True:
+        event, values = window.read()
+        if event in (sg.WIN_CLOSED, 'Cancel'):
+            window.close()
+            return None
+        if event == 'Export':
+            window.close()
+            return values
+            
+    window.close()
+    return None
 
 def show_settings_window(settings):
     """Show settings dialog with comprehensive configuration options"""
@@ -1069,35 +1082,6 @@ def show_settings_window(settings):
                 sg.popup_error(f"Error saving settings: {str(e)}", title="Error")
     
     window.close()
-
-def show_export_options_window():
-    """Show export options window"""
-    layout = [
-        [sg.Text('Export Options')],
-        [sg.Checkbox('Include Headers', default=True, key='-HEADERS-')],
-        [sg.Checkbox('Include Row Numbers', default=False, key='-ROW_NUMS-')],
-        [sg.Text('Export Format:')],
-        [sg.Radio('Excel', 'FORMAT', default=True, key='-EXCEL-'),
-         sg.Radio('CSV', 'FORMAT', key='-CSV-')],
-        [sg.Text('Sheet Name:'), sg.Input('Sheet1', key='-SHEET_NAME-')],
-        [sg.Button('Export'), sg.Button('Cancel')]
-    ]  # Close layout list
-    
-    window = sg.Window('Export Options', layout, modal=True, finalize=True)
-    
-    while True:
-        event, values = window.read()
-        
-        if event in (sg.WIN_CLOSED, 'Cancel'):
-            window.close()
-            return None
-            
-        if event == 'Export':
-            window.close()
-            return values
-    
-    window.close()
-    return None
 
 class EventHandler:
     def __init__(self, window, data_manager):
@@ -1266,6 +1250,70 @@ class EventHandler:
             traceback.print_exc()
             sg.popup_error(f"Error clearing filters: {str(e)}")
 
+    def handle_group_sort_event(self, event, values):
+        """Handle sorting and grouping events"""
+        try:
+            if self.data_manager.df is None:
+                sg.popup_error("No data loaded")
+                return
+
+            if event == '-APPLY-SORT-':
+                sort_by = values['-SORT-BY-']
+                ascending = values['-SORT-ASC-']
+                
+                if not sort_by:
+                    sg.popup_error("Please select a column to sort by")
+                    return
+                    
+                print(f"Sorting by {sort_by} ({'ascending' if ascending else 'descending'})")
+                self.data_manager.handle_sort(sort_by, ascending)
+                self.update_table()
+                self.window['-STATUS-TEXT-'].update(f"Sorted by {sort_by}")
+                
+            elif event == '-APPLY-GROUP-':
+                group_by = values['-GROUP-BY-']
+                
+                if not group_by:
+                    sg.popup_error("Please select a column to group by")
+                    return
+                    
+                print(f"Grouping by {group_by}")
+                self.data_manager.apply_grouping(group_by)
+                self.update_table()
+                self.window['-STATUS-TEXT-'].update(f"Grouped by {group_by}")
+                
+            elif event == '-RESET-GROUP-':
+                print("Resetting groups")
+                # Reset to original order if filtered, otherwise use original dataframe
+                if self.data_manager.filtered_df is not None:
+                    self.data_manager.filtered_df = self.data_manager.filtered_df.sort_index()
+                else:
+                    self.data_manager.df = self.data_manager.df.sort_index()
+                self.update_table()
+                self.window['-STATUS-TEXT-'].update("Groups reset")
+                
+        except Exception as e:
+            error_msg = f"Error in sorting/grouping: {str(e)}"
+            print(error_msg)
+            traceback.print_exc()
+            sg.popup_error(error_msg)
+
+    def update_table(self):
+        """Update the table display with current data"""
+        try:
+            # Use filtered_df if it exists, otherwise use main df
+            df_to_display = (self.data_manager.filtered_df 
+                           if self.data_manager.filtered_df is not None 
+                           else self.data_manager.df)
+            
+            if df_to_display is not None:
+                self.window['-TABLE-'].update(values=df_to_display.values.tolist())
+                self.window['-RECORD-COUNT-'].update(f'Records: {len(df_to_display)}')
+            
+        except Exception as e:
+            print(f"Error updating table: {str(e)}")
+            traceback.print_exc()
+
 class UIBuilder:
     def create_filter_frame(self):
         """Create the filter section of the UI"""
@@ -1305,7 +1353,7 @@ class UIBuilder:
                      key='-SORT-BY-', size=(15, 1)),
              sg.Checkbox('Ascending', key='-SORT-ASC-', default=True)],
             [sg.Text('Group by:', size=(8, 1)),
-             sg.Combo(['DWG', 'ORIGIN', 'DEST', 'Wire Type'],
+             sg.Combo(['DWG', 'ORIGIN', 'DEST', 'ProjectID'],
                      key='-GROUP-BY-', size=(15, 1))],
             [sg.Button('Apply Sort', key='-APPLY-SORT-'),
              sg.Button('Apply Group', key='-APPLY-GROUP-'),
@@ -1318,7 +1366,7 @@ class UIBuilder:
         menu_def = [
             ['File', ['Open::open_key', 'Save', 'Settings', 'Exit']],
             ['Help', ['About']]
-        ]  # Close menu_def list
+        ]
         
         table = sg.Table(
             values=[],
@@ -1344,7 +1392,7 @@ class UIBuilder:
              sg.Text('Ready', key='-STATUS-TEXT-', size=(50, 1), relief=sg.RELIEF_SUNKEN)],
             [sg.ProgressBar(100, orientation='h', size=(20, 20), 
                               key='-PROGRESS-', visible=False)]
-        ]  # Close status_bar list
+        ]
 
         layout = [
             [sg.Menu(menu_def, key='-MENU-', tearoff=False)],
@@ -1356,7 +1404,7 @@ class UIBuilder:
                 sg.Column([[table]], expand_x=True, expand_y=True, pad=(10, 10))
             ],
             [sg.Frame('Status', status_bar, relief=sg.RELIEF_SUNKEN, pad=(10, 10))]
-        ]  # Close layout list
+        ]
         
         return layout
 
@@ -1451,6 +1499,87 @@ class CableDatabaseApp:
         except Exception as e:
             print(f"Error in load_initial_file: {str(e)}")
             self.update_status(f'Error: {str(e)}')
+
+    def show_loading_screen(self):
+        """Create a loading screen with debug output"""
+        # Create debug output window with transparency
+        debug_layout = [
+            [sg.Multiline(size=(60, 20), key='-DEBUG-LOG-', autoscroll=True, 
+                         background_color='#1a1a1a', text_color='#00ff00',
+                         reroute_stdout=True, reroute_stderr=True, 
+                         write_only=True, expand_x=True, expand_y=True)]
+        ]
+        
+        # Create loading animation layout
+        loading_layout = [
+            [sg.Text('Loading Cable Database...', font=('Any', 16, 'bold'), 
+                    text_color='white', background_color='#1a1a1a')],
+            [sg.ProgressBar(100, orientation='h', size=(30, 20), key='-PROGRESS-',
+                           bar_color=('green', '#1a1a1a'))],
+            [sg.Text('Initializing...', key='-LOAD-STATUS-', font=('Any', 10),
+                    text_color='white', background_color='#1a1a1a')]
+        ]
+        
+        # Combined layout with both elements
+        layout = [
+            [sg.Column(loading_layout, background_color='#1a1a1a', 
+                      element_justification='center', pad=(20, 20))],
+            [sg.Column(debug_layout, background_color='#1a1a1a',
+                      pad=(20, 20), expand_x=True, expand_y=True)]
+        ]
+        
+        # Create window with transparency
+        window = sg.Window('Loading', layout,
+                          no_titlebar=True,
+                          alpha_channel=0.9,
+                          background_color='#1a1a1a',
+                          finalize=True,
+                          keep_on_top=True)
+        
+        return window
+
+    def initialize_with_loading(self):
+        """Initialize application with loading screen"""
+        loading_window = self.show_loading_screen()
+        
+        try:
+            # Update progress bar in steps
+            for i in range(0, 101, 10):
+                loading_window['-PROGRESS-'].update(i)
+                if i == 0:
+                    loading_window['-LOAD-STATUS-'].update('Loading settings...')
+                    self.settings = Settings()
+                    
+                elif i == 20:
+                    loading_window['-LOAD-STATUS-'].update('Initializing data manager...')
+                    self.data_manager = DataManager()
+                    
+                elif i == 40:
+                    loading_window['-LOAD-STATUS-'].update('Building user interface...')
+                    self.ui_builder = UIBuilder()
+                    
+                elif i == 60:
+                    loading_window['-LOAD-STATUS-'].update('Creating main window...')
+                    self.window = self.ui_builder.create_window()
+                    
+                elif i == 80:
+                    loading_window['-LOAD-STATUS-'].update('Setting up event handlers...')
+                    self.event_handler = EventHandler(self.window, self.data_manager)
+                    
+                elif i == 100:
+                    loading_window['-LOAD-STATUS-'].update('Ready!')
+                    
+                time.sleep(0.1)  # Add small delay for visual effect
+                loading_window.refresh()
+                
+            # Close loading window after short delay
+            time.sleep(0.5)
+            loading_window.close()
+            
+        except Exception as e:
+            print(f"Error during initialization: {str(e)}")
+            loading_window.close()
+            raise
 
 if __name__ == "__main__":
     print("Application starting...")
