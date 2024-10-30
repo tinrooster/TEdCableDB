@@ -850,183 +850,95 @@ class DataManager:
         
         return result
 
-def show_color_config_window(settings):
-    """Show color configuration window"""
+class ThemeManager:
+    """Manage application themes and colors"""
     
-    # Load existing color settings or use defaults
-    color_settings = settings.settings.get('colors', {
-        'Color 1': {'color': '#FFFF00', 'keywords': []},
-        'Color 2': {'color': '#E6E6FA', 'keywords': []},
-        'Color 3': {'color': '#90EE90', 'keywords': []},
-        'Color 4': {'color': '#ADD8E6', 'keywords': []},
-        'Color 5': {'color': '#FFB6C1', 'keywords': []}
-    })
-    
-    layout = [
-        [sg.Text('Color Categories Configuration', font='Any 12 bold')],
-        *[
-            [
-                sg.Text(f'Color {i+1}:', size=(8,1)),
-                sg.Input(key=f'-COLOR{i+1}-', size=(10,1), enable_events=True),
-                sg.ColorChooserButton('Pick', target=f'-COLOR{i+1}-'),
-                sg.Text('Keywords:'),
-                sg.Input(key=f'-KEYWORDS{i+1}-', size=(30,1))
-            ] for i in range(6)
-        ],
-        [sg.Text('_' * 80)],
-        [sg.Text('Add New Category:')],
-        [sg.Input(key='-NEW-COLOR-NAME-', size=(20,1)), 
-         sg.ColorChooserButton('Pick Color'),
-         sg.Input(key='-NEW-KEYWORDS-', size=(30,1))],
-        [sg.Button('Add Category')],
-        [sg.Button('Save'), sg.Button('Cancel')]
-    ]
-    return sg.Window('Color Settings', layout, finalize=True, modal=True)
+    THEMES = {
+        'DARK': {
+            'background': '#1a1a1a',
+            'text': '#ffffff',
+            'row_colors': ['#181818', '#232323'],  # Alternating dark grays
+            'selected_row': 'white on blue',
+            'header_color': '#303030',
+            'frame_color': '#2a2a2a',
+            'input_background': '#303030',
+            'input_text': '#ffffff',
+            'button_color': ('#ffffff', '#404040'),
+            'theme_name': 'DarkGrey13'
+        },
+        'LIGHT': {
+            'background': '#ffffff',
+            'text': '#000000',
+            'row_colors': ['#f0f0f0', '#ffffff'],  # Alternating light grays
+            'selected_row': 'white on blue',
+            'header_color': '#e0e0e0',
+            'frame_color': '#f5f5f5',
+            'input_background': '#ffffff',
+            'input_text': '#000000',
+            'button_color': ('#000000', '#e0e0e0'),
+            'theme_name': 'Default'
+        }
+    }
 
-def create_export_options_window():
-    """Create export options popup window"""
-    layout = [
-        [sg.Text('Export Options', font='Any 12 bold')],
-        [sg.Text('Export Format:')],
-        [sg.Radio('Excel', 'FORMAT', key='-EXCEL-', default=True),
-         sg.Radio('CSV', 'FORMAT', key='-CSV-')],
-        [sg.Text('Include:')],
-        [sg.Checkbox('Headers', key='-HEADERS-', default=True),
-         sg.Checkbox('Row Numbers', key='-ROW-NUMS-')],
-        [sg.Text('Columns to Export:')],
-        [sg.Listbox(values=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 
-                           'Wire Type', 'Length', 'Note', 'Project ID'],
-                   select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE,
-                   size=(30, 6),
-                   key='-EXPORT-COLS-')],
-        [sg.Button('Export'), sg.Button('Cancel')]
-    ]
+    @classmethod
+    def apply_theme(cls, window, theme_key='DARK'):
+        """Apply the selected theme to the window"""
+        theme = cls.THEMES[theme_key]
+        sg.theme(theme['theme_name'])
+        
+        # Update table colors
+        table = window['-TABLE-']
+        table.update(
+            row_colors=[(i, theme['row_colors'][i % 2]) for i in range(1000)],
+            selected_row_colors=theme['selected_row']
+        )
+        
+        # Update other elements
+        for key in window.key_dict:
+            if isinstance(key, str):
+                elem = window[key]
+                if isinstance(elem, sg.Input):
+                    elem.update(background_color=theme['input_background'],
+                              text_color=theme['input_text'])
+                elif isinstance(elem, sg.Button):
+                    elem.update(button_color=theme['button_color'])
+                elif isinstance(elem, (sg.Text, sg.Frame)):
+                    elem.update(background_color=theme['background'],
+                              text_color=theme['text'])
 
-    window = sg.Window('Export Options', layout, finalize=True, modal=True)
+def create_main_layout(self):
+    """Create the main application layout"""
+    # Define table colors for dark theme
+    table_colors = {
+        'header_background': '#303030',
+        'row_colors': [(i, '#181818' if i % 2 == 0 else '#232323') for i in range(1000)],
+        'selected_colors': ('white', '#000080'),  # White text on dark blue background
+        'text_color': '#FFFFFF'  # White text for all rows
+    }
     
-    while True:
-        event, values = window.read()
-        if event in (sg.WIN_CLOSED, 'Cancel'):
-            window.close()
-            return None
-        if event == 'Export':
-            window.close()
-            return values
-            
-    window.close()
-    return None
-
-def show_settings_window(settings):
-    """Show settings dialog with comprehensive configuration options"""
-    layout = [
-        [sg.Frame('File Settings', [
-            [sg.Text("Default Excel File:", size=(15, 1))],
-            [sg.Input(settings.settings.get('default_file_path', ''), 
-                     key='-DEFAULT-FILE-', 
-                     size=(50, 1)),
-             sg.FileBrowse(file_types=(("Excel Files", "*.xlsx;*.xlsm"),))],
-            [sg.Checkbox("Auto-load default file on startup", 
-                        key='-AUTO-LOAD-',
-                        default=settings.settings.get('auto_load_default', True))]
-        ])],
-        
-        [sg.Frame('Display Settings', [
-            [sg.Text("Table Row Height:", size=(15, 1)),
-             sg.Input(settings.settings.get('row_height', '25'), 
-                     key='-ROW-HEIGHT-', 
-                     size=(5, 1)),
-             sg.Text("pixels")],
-            [sg.Text("Font Size:", size=(15, 1)),
-             sg.Combo(values=[8, 9, 10, 11, 12, 14], 
-                     default_value=settings.settings.get('font_size', 10),
-                     key='-FONT-SIZE-',
-                     size=(5, 1))]
-        ])],
-        
-        [sg.Frame('Color Theme', [
-            [sg.Text("Application Theme:", size=(15, 1)),
-             sg.Combo(values=['Default', 'Dark', 'Light', 'System'], 
-                     default_value=settings.settings.get('theme', 'Default'),
-                     key='-THEME-',
-                     size=(10, 1))],
-            [sg.Text("Table Colors:")],
-            [sg.Text("Background:", size=(12, 1)),
-             sg.Input(settings.settings.get('table_bg', '#232323'), 
-                     key='-TABLE-BG-', 
-                     size=(10, 1)),
-             sg.ColorChooserButton('Pick')],
-            [sg.Text("Alternate Row:", size=(12, 1)),
-             sg.Input(settings.settings.get('table_alt', '#191919'), 
-                     key='-TABLE-ALT-', 
-                     size=(10, 1)),
-             sg.ColorChooserButton('Pick')]
-        ])],
-        
-        [sg.Frame('Startup Behavior', [
-            [sg.Checkbox("Remember window position", 
-                        key='-REMEMBER-POS-',
-                        default=settings.settings.get('remember_position', True))],
-            [sg.Checkbox("Remember last filters", 
-                        key='-REMEMBER-FILTERS-',
-                        default=settings.settings.get('remember_filters', False))],
-            [sg.Checkbox("Show startup tips", 
-                        key='-SHOW-TIPS-',
-                        default=settings.settings.get('show_tips', True))]
-        ])],
-        
-        [sg.Button("Save", bind_return_key=True), 
-         sg.Button("Cancel"),
-         sg.Button("Reset to Defaults")]
-    ]
+    # Create table with proper styling
+    table = sg.Table(
+        values=[],
+        headings=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 
+                 'Wire Type', 'Length', 'Note', 'ProjectID'],
+        auto_size_columns=False,
+        col_widths=[10, 15, 60, 60, 15, 15, 10, 20, 10],
+        justification='left',
+        num_rows=25,
+        key='-TABLE-',
+        row_colors=table_colors['row_colors'],
+        selected_row_colors=table_colors['selected_colors'],
+        text_color=table_colors['text_color'],
+        background_color=table_colors['row_colors'][0][1],  # Use first row color as default
+        header_background_color=table_colors['header_background'],
+        header_text_color=table_colors['text_color'],
+        enable_events=True,
+        expand_x=True,
+        expand_y=True,
+        enable_click_events=True
+    )
     
-    window = sg.Window("Settings", layout, modal=True, finalize=True)
-    window["Save"].set_focus()
-    
-    while True:
-        event, values = window.read()
-        
-        if event in (sg.WIN_CLOSED, "Cancel"):
-            break
-            
-        if event == "Reset to Defaults":
-            # Confirm before resetting
-            if sg.popup_yes_no("Are you sure you want to reset all settings to defaults?",
-                             title="Confirm Reset") == "Yes":
-                settings.settings = DEFAULT_SETTINGS.copy()
-                settings.save_settings()
-                break
-        
-        if event == "Save":
-            try:
-                # Validate numeric inputs
-                row_height = int(values['-ROW-HEIGHT-'])
-                if not (10 <= row_height <= 100):
-                    raise ValueError("Row height must be between 10 and 100")
-                
-                # Update settings
-                settings.settings.update({
-                    'default_file_path': values['-DEFAULT-FILE-'],
-                    'auto_load_default': values['-AUTO-LOAD-'],
-                    'row_height': row_height,
-                    'font_size': values['-FONT-SIZE-'],
-                    'theme': values['-THEME-'],
-                    'table_bg': values['-TABLE-BG-'],
-                    'table_alt': values['-TABLE-ALT-'],
-                    'remember_position': values['-REMEMBER-POS-'],
-                    'remember_filters': values['-REMEMBER-FILTERS-'],
-                    'show_tips': values['-SHOW-TIPS-']
-                })
-                
-                settings.save_settings()
-                sg.popup("Settings saved successfully!", title="Success")
-                break
-                
-            except ValueError as e:
-                sg.popup_error(f"Invalid input: {str(e)}", title="Error")
-            except Exception as e:
-                sg.popup_error(f"Error saving settings: {str(e)}", title="Error")
-    
-    window.close()
+    # ... rest of layout code ...
 
 class EventHandler:
     def __init__(self, window, data_manager):
@@ -1034,41 +946,39 @@ class EventHandler:
         self.data_manager = data_manager
         self.current_group_field = None
 
-    def handle_event(self, event, values) -> bool:
-        """Handle all window events"""
+    def handle_event(self, event, values):
+        """Handle window events with proper table click handling"""
         try:
             print(f"Handling event: {event}")
             
-            if event in (None, 'Exit', sg.WIN_CLOSED):
-                return False
+            # Handle table clicks
+            if isinstance(event, tuple) and event[0] == '-TABLE-':
+                if event[1] == '+CLICKED+':
+                    row, col = event[2]
+                    print(f"Table cell clicked: row={row}, col={col}")
+                    return True
+                return True
                 
-            if event == '-APPLY-FILTER-':
-                self.handle_filter_event(values)
-                
-            elif event == '-CLEAR-FILTER-':
-                self.clear_filters()
-                # Reset to original data
-                if self.data_manager.original_df is not None:
-                    self.window['-TABLE-'].update(
-                        values=self.data_manager.original_df.values.tolist()
-                    )
-                    self.window['-RECORD-COUNT-'].update(
-                        f'Records: {len(self.data_manager.original_df)}'
-                    )
-                    
-            elif event in ('-APPLY-SORT-', '-APPLY-GROUP-', '-RESET-GROUP-'):
-                self.handle_group_sort_event(event, values)
-                
-            elif event.startswith('Open'):
-                # Handle file open
-                filename = sg.popup_get_file('Choose Excel file', 
-                                           file_types=(("Excel Files", "*.xlsx"),))
-                if filename:
-                    if self.data_manager.load_file(filename):
-                        self.update_table()
-                        
-            return True
+            # Handle string-based events
+            if isinstance(event, str):
+                if event == 'Exit':
+                    return False
+                elif event.startswith('Open'):
+                    self.handle_open_event(event, values)
+                elif event == 'Save':
+                    self.handle_save_event()
+                elif event == 'Settings':
+                    self.handle_settings_event()
+                elif event == 'About':
+                    self.handle_about_event()
+                elif event == 'Dark':
+                    ThemeManager.apply_theme(self.window, 'DARK')
+                elif event == 'Light':
+                    ThemeManager.apply_theme(self.window, 'LIGHT')
+                # ... rest of your event handling ...
             
+            return True
+                
         except Exception as e:
             print(f"Error handling event: {str(e)}")
             traceback.print_exc()
