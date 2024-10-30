@@ -1323,6 +1323,11 @@ class UIBuilder:
             ['Help', ['About']]
         ]
         
+        # Create the filter and sort frames with same styling as before
+        filter_frame = sg.Frame('Filters', self.create_filter_frame(), pad=(10, 5))
+        sort_group_frame = sg.Frame('Sort and Group', self.create_sort_group_frame(), pad=(10, 5))
+        
+        # Create table component (unchanged)
         table = sg.Table(
             values=[],
             headings=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 
@@ -1339,6 +1344,7 @@ class UIBuilder:
             enable_click_events=True
         )
 
+        # Status bar (unchanged)
         status_bar = [
             [sg.Text('Records:', size=(8, 1)),
              sg.Text('0', key='-RECORD-COUNT-', size=(8, 1)),
@@ -1349,16 +1355,12 @@ class UIBuilder:
                               key='-PROGRESS-', visible=False)]
         ]
 
+        # New layout with filters at top
         layout = [
             [sg.Menu(menu_def, key='-MENU-', tearoff=False)],
-            [
-                sg.Column([
-                    [sg.Frame('Filters', self.create_filter_frame(), pad=(10, 10))],
-                    [sg.Frame('Sort and Group', self.create_sort_group_frame(), pad=(10, 10))]
-                ], pad=(10, 10)),
-                sg.Column([[table]], expand_x=True, expand_y=True, pad=(10, 10))
-            ],
-            [sg.Frame('Status', status_bar, relief=sg.RELIEF_SUNKEN, pad=(10, 10))]
+            [filter_frame, sort_group_frame],  # Moved to top, side by side
+            [table],  # Table now takes full width below filters
+            [sg.Frame('Status', status_bar, relief=sg.RELIEF_SUNKEN, pad=(10, 5))]
         ]
         
         return layout
