@@ -1081,11 +1081,31 @@ class EventHandler:
             self.window['-RECORD-COUNT-'].update(f'Records: {len(self.data_manager.df)}')
 
     def handle_filter_event(self, values):
-        """Handle filter application with improved search"""
+        """Handle filter application with improved number range handling"""
         try:
-            # Get filter values
+            # Get number range values first
+            num_start = values['-NUM-START-']
+            num_end = values['-NUM-END-']
+            
+            # Start with full dataset
+            df = self.data_manager.df.copy() if self.data_manager.df is not None else None
+            if df is None or df.empty:
+                return
+                
+            records_before = len(df)
+            
+            # Handle number range filter first
+            if num_start or num_end:
+                try:
+                    start = int(float(num_start)) if num_start else df['NUMBER'].min()
+                    end = int(float(num_end)) if num_end else df['NUMBER'].max()
+                    print(f"Applying number range filter: {start} to {end}")
+                    df = df[df['NUMBER'].between(start, end)]
+                except ValueError as e:
+                    print(f"Invalid number range: {str(e)}")
+            
+            # Handle other filters
             filters = {
-                'NUMBER': values['-NUM-START-'],
                 'DWG': values['-DWG-'],
                 'ORIGIN': values['-ORIGIN-'],
                 'DEST': values['-DEST-'],
@@ -1097,40 +1117,23 @@ class EventHandler:
             exact_match = values['-EXACT-']
             fuzzy_search = values['-FUZZY-SEARCH-']
             
-            # Start with full dataset
-            df = self.data_manager.df.copy() if self.data_manager.df is not None else None
-            if df is None or df.empty:
-                return
-                
-            records_before = len(df)
-            
-            # Apply each non-empty filter
+            # Apply remaining filters
             for field, value in filters.items():
                 if not value:  # Skip empty filters
                     continue
                     
                 print(f"Applying filter: {field}={value}")
                 
-                if field == 'NUMBER':
-                    try:
-                        num_value = int(float(value))
-                        df = df[df['NUMBER'] == num_value]
-                    except ValueError:
-                        print(f"Invalid number value: {value}")
-                        continue
+                if fuzzy_search:
+                    df = self.apply_fuzzy_filter(df, field, str(value))
+                elif exact_match:
+                    df = df[df[field].fillna('').astype(str).str.lower() == str(value).lower()]
                 else:
-                    if fuzzy_search:
-                        df = self.apply_fuzzy_filter(df, field, str(value))
-                    elif exact_match:
-                        # Exact match (case-insensitive)
-                        df = df[df[field].fillna('').astype(str).str.lower() == str(value).lower()]
-                    else:
-                        # Simple contains search (case-insensitive)
-                        search_value = str(value).lower()
-                        df = df[df[field].fillna('').astype(str).apply(
-                            lambda x: search_value in x.lower()
-                        )]
-                    
+                    search_value = str(value).lower()
+                    df = df[df[field].fillna('').astype(str).apply(
+                        lambda x: search_value in x.lower()
+                    )]
+                
                 print(f"Records after {field} filter: {len(df)}")
             
             # Update the filtered dataframe
@@ -1140,10 +1143,11 @@ class EventHandler:
             self.window['-TABLE-'].update(values=df.values.tolist())
             self.window['-RECORD-COUNT-'].update(f'Records: {len(df)}')
             
-            # Update status
+            # Update status with more detailed information
             records_filtered = records_before - len(df)
             self.window['-STATUS-TEXT-'].update(
-                f'Filter applied: {records_filtered} records filtered out'
+                f'Filter applied: {records_filtered} records filtered out. '
+                f'Showing records {len(df)} of {records_before}'
             )
             
         except Exception as e:
@@ -1318,12 +1322,13 @@ class UIBuilder:
 
     def create_main_layout(self):
         """Create the main application layout"""
+        # Define menu
         menu_def = [
             ['File', ['Open::open_key', 'Save', 'Settings', 'Exit']],
             ['Help', ['About']]
         ]
         
-        # Create the filter and sort frames with same styling as before
+        # Create the filter and sort frames
         filter_frame = sg.Frame('Filters', self.create_filter_frame(), pad=(10, 5))
         sort_group_frame = sg.Frame('Sort and Group', self.create_sort_group_frame(), pad=(10, 5))
         
