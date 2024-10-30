@@ -1,4 +1,3 @@
-import pandas as pd
 import PySimpleGUI as sg
 import openpyxl
 import os
@@ -10,6 +9,7 @@ from typing import Dict, List, Tuple, Optional, Any
 from thefuzz import fuzz
 import re
 import time
+import pandas as pd
 
 # Constants
 DEFAULT_SETTINGS = {
@@ -227,6 +227,8 @@ class DataManager:
         }
         
         self.expected_columns = list(self.column_names.values())
+        self.debug_log = []  # Store recent debug messages
+        self.max_log_entries = 50  # Keep last 50 messages
 
     def set_window(self, window):
         """Set the window reference for status updates"""
@@ -242,7 +244,7 @@ class DataManager:
     def load_file(self, filename: str) -> bool:
         """Load and validate Excel file"""
         try:
-            print(f"Attempting to load file: {filename}")
+            self.log_debug(f"Attempting to load file: {filename}")
             self.current_file = filename
             
             if not os.path.exists(filename):
@@ -310,13 +312,26 @@ class DataManager:
 
         except Exception as e:
             error_msg = f"Error loading file: {str(e)}"
-            self.update_status(error_msg)
-            print(error_msg)
+            self.log_debug(error_msg)
             traceback.print_exc()
             return False
 
+    def log_debug(self, message: str):
+        """Add debug message to log and update status"""
+        timestamp = datetime.now().strftime('%H:%M:%S')
+        debug_msg = f"[{timestamp}] {message}"
+        print(debug_msg)  # Still print to console
+        
+        # Add to debug log
+        self.debug_log.append(debug_msg)
+        if len(self.debug_log) > self.max_log_entries:
+            self.debug_log.pop(0)  # Remove oldest message
+            
+        # Update status with latest message
+        self.update_status(message)
+
     def update_status(self, message: str):
-        """Update status message"""
+        """Update status bar with message"""
         if self.window:
             try:
                 self.window['-STATUS-TEXT-'].update(message)
@@ -582,44 +597,95 @@ class DataManager:
             sg.popup_error(f"Error loading file: {str(e)}")
             return None, None
 
+    def apply_fuzzy_filter(self, df: pd.DataFrame, column: str, search_term: str, 
+                          threshold: int = 75) -> pd.DataFrame:
+        """Apply improved fuzzy matching with better logic"""
+        try:
+            if not search_term:
+                return df
+
+            # Convert series to string type and handle NaN values
+            str_series = df[column].fillna('').astype(str)
+            
+            # First try exact substring match (case-insensitive)
+            exact_matches = str_series.str.contains(search_term, case=False, na=False)
+            
+            # Then do fuzzy matching only on non-exact matches
+            fuzzy_scores = []
+            for val in str_series:
+                # If it's an exact match, give it 100% score
+                if search_term.lower() in val.lower():
+                    fuzzy_scores.append(100)
+                else:
+                    # Calculate both ratio and partial ratio
+                    ratio = fuzz.ratio(val.lower(), search_term.lower())
+                    partial = fuzz.partial_ratio(val.lower(), search_term.lower())
+                    # Take the better of the two scores
+                    fuzzy_scores.append(max(ratio, partial))
+            
+            # Create mask for matches
+            mask = (pd.Series(fuzzy_scores) >= threshold) | exact_matches
+            matches = df[mask]
+            
+            # Log matching details for debugging
+            self.log_debug(f"\nFuzzy match summary for '{search_term}' in {column}:")
+            self.log_debug(f"  Total records: {len(df)}")
+            self.log_debug(f"  Exact matches: {exact_matches.sum()}")
+            self.log_debug(f"  Fuzzy matches: {len(matches) - exact_matches.sum()}")
+            self.log_debug(f"  Total matches: {len(matches)}")
+            
+            # Log some example matches
+            if not matches.empty:
+                self.log_debug("\nExample matches:")
+                for idx, row in matches.head().iterrows():
+                    val = str(row[column])
+                    score = fuzzy_scores[idx]
+                    self.log_debug(f"  '{val}' -> {score}% match")
+            
+            return matches
+            
+        except Exception as e:
+            self.log_debug(f"Error in fuzzy matching: {str(e)}")
+            return df
+
     def apply_filters(self, filters: Dict[str, Any], use_exact: bool = False, 
                      use_fuzzy: bool = False) -> pd.DataFrame:
-        """Apply filters with improved debugging"""
         try:
             if self.df is None:
                 return pd.DataFrame()
             
             self.current_filters = filters
             filtered_df = self.df.copy()
+            initial_record_count = len(filtered_df)
             
-            print("\nStarting filter application:")
-            print(f"Initial record count: {len(filtered_df)}")
+            self.log_debug("Starting filter application...")
+            search_mode = "FUZZY" if use_fuzzy else ("EXACT" if use_exact else "CONTAINS")
+            self.log_debug(f"Search mode: {search_mode}")
             
             for column, filter_value in filters.items():
-                if not filter_value:  # Skip empty filters
+                if not filter_value:
                     continue
                 
-                print(f"\nApplying filter for {column}: {filter_value}")
+                self.log_debug(f"Applying {search_mode} filter for {column}: {filter_value}")
                 initial_count = len(filtered_df)
                 
                 if column == '-NUM-START-':
                     try:
                         start_num = int(float(filter_value))
                         filtered_df = filtered_df[filtered_df['NUMBER'] >= start_num]
-                        print(f"NUMBER >= {start_num}: {initial_count} → {len(filtered_df)} records")
+                        self.log_debug(f"NUMBER >= {start_num}: {initial_count} → {len(filtered_df)} records")
                     except ValueError:
-                        print(f"Invalid NUMBER start value: {filter_value}")
+                        self.log_debug(f"Invalid NUMBER start value: {filter_value}")
                         
                 elif column == '-NUM-END-':
                     try:
                         end_num = int(float(filter_value))
                         filtered_df = filtered_df[filtered_df['NUMBER'] <= end_num]
-                        print(f"NUMBER <= {end_num}: {initial_count} → {len(filtered_df)} records")
+                        self.log_debug(f"NUMBER <= {end_num}: {initial_count} → {len(filtered_df)} records")
                     except ValueError:
-                        print(f"Invalid NUMBER end value: {filter_value}")
+                        self.log_debug(f"Invalid NUMBER end value: {filter_value}")
                         
-                elif isinstance(filter_value, str) and filter_value.strip():
-                    # Map UI field keys to actual column names
+                else:
                     column_mapping = {
                         '-DWG-': 'DWG',
                         '-ORIGIN-': 'ORIGIN',
@@ -629,66 +695,46 @@ class DataManager:
                     }
                     
                     actual_column = column_mapping.get(column)
-                    if actual_column:
+                    if actual_column and isinstance(filter_value, str) and filter_value.strip():
                         if use_fuzzy:
-                            filtered_df = filtered_df[
-                                filtered_df[actual_column].astype(str).str.contains(
-                                    filter_value, case=False, na=False
-                                )
-                            ]
+                            before_count = len(filtered_df)
+                            filtered_df = self.apply_fuzzy_filter(filtered_df, actual_column, filter_value)
+                            self.log_debug(f"Fuzzy match results for '{filter_value}' in {actual_column}:")
+                            self.log_debug(f"  Before: {before_count} records")
+                            self.log_debug(f"  After: {len(filtered_df)} records")
+                            self.log_debug(f"  Similarity threshold: 75%")
                         elif use_exact:
-                            filtered_df = filtered_df[
-                                filtered_df[actual_column].astype(str).str.lower() == 
-                                filter_value.lower()
-                            ]
+                            # Exact matching (case-insensitive)
+                            mask = filtered_df[actual_column].astype(str).str.lower() == filter_value.lower()
+                            filtered_df = filtered_df[mask]
                         else:
-                            filtered_df = filtered_df[
-                                filtered_df[actual_column].astype(str).str.contains(
-                                    filter_value, case=False, regex=False, na=False
-                                )
-                            ]
-                        print(f"{actual_column} filter: {initial_count} → {len(filtered_df)} records")
+                            # Simple contains matching (case-insensitive)
+                            mask = filtered_df[actual_column].astype(str).str.contains(
+                                filter_value, 
+                                case=False, 
+                                regex=False, 
+                                na=False
+                            )
+                            filtered_df = filtered_df[mask]
+                            
+                        self.log_debug(f"{actual_column} filter: {initial_count} → {len(filtered_df)} records")
 
-            print(f"\nFinal filtered record count: {len(filtered_df)}")
-            self.filtered_df = filtered_df
-            self.update_status(f"Filtered to {len(filtered_df)} records")
+            self.filtered_df = filtered_df  # Make sure we store the filtered results
+            result_msg = (
+                f"Filter results ({search_mode} search):\n"
+                f"  Starting records: {initial_record_count}\n"
+                f"  Filtered records: {len(filtered_df)}"
+            )
+            self.log_debug(result_msg)
+            self.update_status(f"{search_mode} search: {len(filtered_df)} matches")
+            
             return filtered_df
             
         except Exception as e:
-            print(f"Error in filtering: {str(e)}")
+            self.log_debug(f"Error in filtering: {str(e)}")
             traceback.print_exc()
-            self.update_status(f"Error in filtering: {str(e)}")
+            self.filtered_df = self.df.copy()  # Reset to unfiltered on error
             return self.df.copy()
-
-    def _fuzzy_match(self, text: str, pattern: str, threshold: int = 80) -> bool:
-        """
-        Perform fuzzy matching with multiple strategies
-        Returns True if any matching strategy succeeds
-        """
-        text = str(text).lower()
-        pattern = str(pattern).lower()
-        
-        # Exact substring match
-        if pattern in text:
-            return True
-            
-        # Fuzzy ratio match
-        if fuzz.ratio(text, pattern) >= threshold:
-            return True
-            
-        # Partial ratio match (for substrings)
-        if fuzz.partial_ratio(text, pattern) >= threshold:
-            return True
-            
-        # Token sort ratio (handles word order differences)
-        if fuzz.token_sort_ratio(text, pattern) >= threshold:
-            return True
-            
-        # Token set ratio (handles extra/missing words)
-        if fuzz.token_set_ratio(text, pattern) >= threshold:
-            return True
-        
-        return False
 
     def group_by_field(self, field: str) -> pd.DataFrame:
         """Group data by field while maintaining original order within groups"""
@@ -1035,7 +1081,7 @@ def show_export_options_window():
          sg.Radio('CSV', 'FORMAT', key='-CSV-')],
         [sg.Text('Sheet Name:'), sg.Input('Sheet1', key='-SHEET_NAME-')],
         [sg.Button('Export'), sg.Button('Cancel')]
-    ]
+    ]  # Close layout list
     
     window = sg.Window('Export Options', layout, modal=True, finalize=True)
     
@@ -1043,10 +1089,10 @@ def show_export_options_window():
         event, values = window.read()
         
         if event in (sg.WIN_CLOSED, 'Cancel'):
-            break
+            window.close()
+            return None
             
         if event == 'Export':
-            # Return export settings
             window.close()
             return values
     
@@ -1058,411 +1104,265 @@ class EventHandler:
         self.window = window
         self.data_manager = data_manager
         self.current_group_field = None
-        self.valid_filter_keys = [
-            '-NUM-START-',
-            '-DWG-',
-            '-ORIGIN-',
-            '-DEST-',
-            '-WIRE-TYPE-',
-            '-LENGTH-',
-            '-PROJECT-',
-            '-FUZZY-SEARCH-'
-        ]
 
-    def update_table(self):
-        """Update the table display with current data"""
+    def handle_event(self, event, values) -> bool:
+        """Handle all window events"""
         try:
-            display_df = self.data_manager.filtered_df if self.data_manager.filtered_df is not None else self.data_manager.df
-            if display_df is not None:
-                self.window['-TABLE-'].update(values=display_df.values.tolist())
-                self.window['-RECORD-COUNT-'].update(f'Records: {len(display_df)}')
-                self.update_status('Table updated successfully')
-        except Exception as e:
-            print(f"Error updating table: {str(e)}")
-            self.update_status(f'Error: {str(e)}')
-
-    def handle_event(self, event: str, values: Dict[str, Any]) -> bool:
-        """Handle all events"""
-        try:
-            if event == '-TIMER-':
-                # Hide progress bar after delay
-                self.data_manager.hide_progress()
-                return True
+            print(f"Handling event: {event}")
+            
+            if event in (None, 'Exit', sg.WIN_CLOSED):
+                return False
                 
-            if event == 'Open::open_key':
-                file_path = sg.popup_get_file(
-                    'Select Excel File', 
-                    file_types=(("Excel Files", "*.xlsx;*.xlsm"),),
-                    initial_folder=os.path.dirname(self.data_manager.current_file) if hasattr(self.data_manager, 'current_file') else None
-                )
-                if file_path:
-                    self.update_status('Loading file...')
-                    if self.data_manager.load_file(file_path):
-                        self.update_status('File loaded successfully')
-                        self.update_table()
-                    else:
-                        self.update_status('Error loading file')
-                return True
-
-            elif event == 'Settings':
-                show_settings_window(self.settings)
-                return True
-
-            # Handle input validation
-            if event in ('-NUM-START-', '-NUM-END-'):
-                if not self.validate_input(event, values[event]):
-                    # Clear invalid input
-                    self.window[event].update('')
-                    return True
-
-            # Handle table clicks
-            if isinstance(event, tuple) and event[0] == '-TABLE-':
-                return True
-
-            # Handle sort events
-            if event == '-APPLY-SORT-':
-                sort_by = values.get('-SORT-BY-')
-                if sort_by:
-                    ascending = values.get('-SORT-ASC-', True)
-                    if self.data_manager.handle_sort(sort_by, ascending):
-                        self.update_table()
-                    else:
-                        print(f"Failed to sort by {sort_by}")
-                return True
-
-            # Handle group events
-            if event == '-APPLY-GROUP-':
-                group_by = values.get('-GROUP-BY-')
-                if group_by:
-                    success = self.data_manager.apply_grouping(group_by)
-                    if success:
-                        self.update_table()
-                return True
-
-            elif event == '-RESET-GROUP-':
-                self.data_manager.reset_grouping()
-                self.update_table()
-                return True
-
-            # Handle filter events
             if event == '-APPLY-FILTER-':
-                # Collect all non-empty filters
-                filters = {}
-                if values.get('-NUM-START-'):
-                    filters['-NUM-START-'] = values['-NUM-START-']
-                if values.get('-NUM-END-'):
-                    filters['-NUM-END-'] = values['-NUM-END-']
-                if values.get('-DWG-'):
-                    filters['-DWG-'] = values['-DWG-']
-                if values.get('-ORIGIN-'):
-                    filters['-ORIGIN-'] = values['-ORIGIN-']
-                if values.get('-DEST-'):
-                    filters['-DEST-'] = values['-DEST-']
-                if values.get('-WIRE-TYPE-'):
-                    filters['-WIRE-TYPE-'] = values['-WIRE-TYPE-']
-                if values.get('-PROJECT-'):
-                    filters['-PROJECT-'] = values['-PROJECT-']
-                
-                use_exact = values.get('-EXACT-', False)
-                use_fuzzy = values.get('-FUZZY-SEARCH-', False)
-                
-                print(f"Applying filters: {filters}")
-                self.data_manager.apply_filters(filters, use_exact, use_fuzzy)
-                self.update_table()
-                return True
+                self.handle_filter_event(values)
                 
             elif event == '-CLEAR-FILTER-':
-                # Clear all filter fields
-                filter_keys = [
-                    '-NUM-START-', '-NUM-END-', '-DWG-', '-ORIGIN-', 
-                    '-DEST-', '-WIRE-TYPE-', '-PROJECT-'
-                ]
-                for key in filter_keys:
-                    self.window[key].update('')
+                self.clear_filters()
+                # Reset to original data
+                if self.data_manager.original_df is not None:
+                    self.window['-TABLE-'].update(
+                        values=self.data_manager.original_df.values.tolist()
+                    )
+                    self.window['-RECORD-COUNT-'].update(
+                        f'Records: {len(self.data_manager.original_df)}'
+                    )
+                    
+            elif event in ('-APPLY-SORT-', '-APPLY-GROUP-', '-RESET-GROUP-'):
+                self.handle_group_sort_event(event, values)
                 
-                # Clear checkboxes
-                self.window['-EXACT-'].update(False)
-                self.window['-FUZZY-SEARCH-'].update(False)
-                
-                # Reset filtered data
-                self.data_manager.filtered_df = None
-                self.update_table()
-                self.data_manager.update_status("Filters cleared")
-                return True
-
+            elif event.startswith('Open'):
+                # Handle file open
+                filename = sg.popup_get_file('Choose Excel file', 
+                                           file_types=(("Excel Files", "*.xlsx"),))
+                if filename:
+                    if self.data_manager.load_file(filename):
+                        self.update_table()
+                        
             return True
-
+            
         except Exception as e:
-            print(f"Error in event handler: {str(e)}")
+            print(f"Error handling event: {str(e)}")
             traceback.print_exc()
             return True
 
-    def handle_filter_event(self, values: Dict[str, Any]) -> None:
+    def update_table(self):
+        """Update the table with current data"""
+        if self.data_manager.df is not None:
+            self.window['-TABLE-'].update(values=self.data_manager.df.values.tolist())
+            self.window['-RECORD-COUNT-'].update(f'Records: {len(self.data_manager.df)}')
+
+    def handle_filter_event(self, values):
         """Handle filter application"""
         try:
-            filters = {}
-            use_exact = values.get('-EXACT-', False)
-            use_fuzzy = values.get('-FUZZY-SEARCH-', False)
-
-            # Number range handling
-            num_start = values.get('-NUM-START-', '').strip()
-            num_end = values.get('-NUM-END-', '').strip()
-            if num_start or num_end:
-                filters['NUMBER'] = {
-                    'start': num_start,
-                    'end': num_end
-                }
-
-            # Other fields
-            field_mapping = {
-                'DWG': '-DWG-',
-                'ORIGIN': '-ORIGIN-',
-                'DEST': '-DEST-',
-                'Wire Type': '-WIRE-TYPE-',
-                'Length': '-LENGTH-',
-                'Project ID': '-PROJECT-'
+            # Get filter values
+            filters = {
+                'NUMBER': (values['-NUM-START-'], values['-NUM-END-']),
+                'DWG': values['-DWG-'],
+                'ORIGIN': values['-ORIGIN-'],
+                'DEST': values['-DEST-'],
+                'Wire Type': values['-WIRE-TYPE-'],
+                'ProjectID': values['-PROJECT-']
             }
-
-            for field, key in field_mapping.items():
-                if values.get(key, '').strip():
-                    filters[field] = values[key].strip()
-
-            # Apply filters
-            filtered_data = self.data_manager.apply_filters(filters, use_exact, use_fuzzy)
-            self.window['-TABLE-'].update(values=filtered_data.values.tolist())
-            self.window['-RECORD-COUNT-'].update(f'Records: {len(filtered_data)}')
-
-        except Exception as e:
-            print(f"Error in filter event: {str(e)}")
-            traceback.print_exc()
-
-    def update_group_display(self, field: str) -> None:
-        """Update the group display for the selected field"""
-        if not field:
-            return
             
-        self.current_group_field = field
-        groups = self.data_manager.group_by_field(field)
+            # Get search mode
+            exact_match = values['-EXACT-']
+            fuzzy_search = values['-FUZZY-SEARCH-']
+            
+            # Apply filters
+            df = self.data_manager.df.copy() if self.data_manager.df is not None else None
+            if df is None:
+                return
+                
+            records_before = len(df)
+            
+            for field, value in filters.items():
+                if field == 'NUMBER' and (value[0] or value[1]):
+                    # Handle number range
+                    start = int(value[0]) if value[0] else None
+                    end = int(value[1]) if value[1] else None
+                    if start is not None and end is not None:
+                        df = df[df['NUMBER'].between(start, end)]
+                    elif start is not None:
+                        df = df[df['NUMBER'] >= start]
+                    elif end is not None:
+                        df = df[df['NUMBER'] <= end]
+                elif value:  # For other fields with non-empty values
+                    if exact_match:
+                        df = df[df[field].astype(str).str.contains(str(value), case=False, na=False)]
+                    elif fuzzy_search:
+                        df = self.apply_fuzzy_filter(df, field, str(value))
+                    else:  # Default contains search
+                        df = df[df[field].astype(str).str.contains(str(value), case=False, na=False)]
+            
+            # Update the filtered dataframe
+            self.data_manager.filtered_df = df
+            
+            # Update the table
+            self.window['-TABLE-'].update(values=df.values.tolist())
+            self.window['-RECORD-COUNT-'].update(f'Records: {len(df)}')
+            
+            # Update status
+            records_after = len(df)
+            self.window['-STATUS-TEXT-'].update(
+                f'Filter applied: {records_before - records_after} records filtered out'
+            )
+            
+        except Exception as e:
+            print(f"Error applying filter: {str(e)}")
+            traceback.print_exc()
+            sg.popup_error(f"Error applying filter: {str(e)}")
+
+    def apply_fuzzy_filter(self, df, field, search_term, threshold=75):
+        """Apply fuzzy matching to filter"""
+        if not search_term:
+            return df
+            
+        # Convert values to strings and handle NaN
+        str_series = df[field].fillna('').astype(str)
         
-        # Format the display text
-        if groups:
-            display_text = "\n".join([f"{k}: {v}" for k, v in groups.items()])
-        else:
-            display_text = "No groups found"
+        # First try exact substring match (case-insensitive)
+        exact_matches = str_series.str.contains(search_term, case=False, na=False)
         
-        self.window['-GROUP-DISPLAY-'].update(display_text)
+        # Then do fuzzy matching
+        fuzzy_scores = []
+        for val in str_series:
+            if search_term.lower() in val.lower():
+                fuzzy_scores.append(100)
+            else:
+                ratio = fuzz.ratio(val.lower(), search_term.lower())
+                partial = fuzz.partial_ratio(val.lower(), search_term.lower())
+                fuzzy_scores.append(max(ratio, partial))
+        
+        # Create mask for matches
+        mask = (pd.Series(fuzzy_scores) >= threshold) | exact_matches
+        return df[mask]
 
     def clear_filters(self):
         """Clear all filters"""
-        # Update list of filter keys to clear
-        filter_keys = [
-            '-NUM-START-',
-            '-DWG-',
-            '-ORIGIN-',
-            '-DEST-',
-            '-WIRE-TYPE-',
-            '-LENGTH-',
-            '-PROJECT-'
-        ]
-        for key in filter_keys:
-            if self.window.find_element(key):
-                self.window[key].update('')
-
-    def handle_group_sort_event(self, event: str, values: Dict[str, Any]) -> None:
-        """Handle group by and sort events"""
-        group_by = values.get('-GROUP-BY-', None)
-        sort_by = values.get('-SORT-BY-', None)
-        sort_ascending = values.get('-SORT-ASC-', True)
-        
-        result = self.data_manager.group_and_sort_data(
-            group_by, sort_by, sort_ascending
-        )
-        
-        # Update group display
-        if 'groups' in result:
-            display_text = "\n".join([f"{k}: {v}" for k, v in result['groups'].items()])
-            self.window['-GROUP-DISPLAY-'].update(display_text)
-        
-        # Update table with sorted data
-        if sort_by:
-            values = self.data_manager.filtered_df.values.tolist()
-            self.window['-TABLE-'].update(values=values)
-
-    def handle_menu_event(self, event: str, values: Dict[str, Any]) -> bool:
-        """Handle menu-related events"""
-        if '+ENTER+' in event:
-            # Handle menu hover
-            return True
-            
-        if '+LEAVE+' in event:
-            # Handle menu leave
-            return True
-            
-        if event in ('Clear Filters', 'Clear Groups', 'Default', 'Dark', 'Light'):
-            # Handle menu actions
-            return True
-        
-        return False
-
-    def validate_input(self, key: str, value: str) -> bool:
-        """Validate input fields"""
-        if not value:
-            return True
-            
-        if key == '-NUM-START-' or key == '-NUM-END-':
-            # Allow only digits for NUMBER fields
-            if not value.isdigit():
-                sg.popup_error('Please enter only digits for NUMBER field', title='Input Error')
-                return False
-            if len(value) > 10:
-                sg.popup_error('NUMBER cannot exceed 10 digits', title='Input Error')
-                return False
-        
-        return True
-
-    def update_status(self, message: str) -> None:
-        """Update status bar with message"""
         try:
-            if self.window is not None:
-                self.window['-STATUS-TEXT-'].update(message)
+            # Clear all filter inputs
+            filter_keys = ['-NUM-START-', '-NUM-END-', '-DWG-', '-ORIGIN-', 
+                         '-DEST-', '-WIRE-TYPE-', '-PROJECT-']
+            for key in filter_keys:
+                self.window[key].update('')
+            
+            # Reset checkboxes
+            self.window['-EXACT-'].update(False)
+            self.window['-FUZZY-SEARCH-'].update(False)
+            
+            # Reset to original data
+            if self.data_manager.original_df is not None:
+                self.data_manager.filtered_df = self.data_manager.original_df.copy()
+                self.window['-TABLE-'].update(
+                    values=self.data_manager.original_df.values.tolist()
+                )
+                self.window['-RECORD-COUNT-'].update(
+                    f'Records: {len(self.data_manager.original_df)}'
+                )
+                self.window['-STATUS-TEXT-'].update('Filters cleared')
+                
         except Exception as e:
-            print(f"Error updating status: {str(e)}")
+            print(f"Error clearing filters: {str(e)}")
+            traceback.print_exc()
+            sg.popup_error(f"Error clearing filters: {str(e)}")
 
 class UIBuilder:
-    def __init__(self):
-        self.constants = UI_CONSTANTS
-        self.filter_keys = {
-            'NUMBER': '-NUM-START-',
-            'DWG': '-DWG-',
-            'ORIGIN': '-ORIGIN-',
-            'DEST': '-DEST-',
-            'Wire Type': '-WIRE-TYPE-',
-            'Length': '-LENGTH-',
-            'Project ID': '-PROJECT-'
-        }
-
     def create_filter_frame(self):
         """Create the filter section of the UI"""
-        return [
-            [sg.Checkbox('Exact', key='-EXACT-'),
-             sg.Checkbox('Fuzzy Search', key='-FUZZY-SEARCH-')],
-            [sg.Text('NUMBER:', size=(8, 1)),
-             sg.Input(key='-NUM-START-', size=(10, 1)),
+        FIELD_LENGTH = 20  # Standard length for all input fields
+        
+        layout = [
+            [sg.Frame('Search Mode', [
+                [sg.Checkbox('Exact Match', key='-EXACT-', enable_events=True),
+                 sg.Checkbox('Fuzzy Search', key='-FUZZY-SEARCH-', enable_events=True)],
+                [sg.Text('(Fuzzy search finds similar matches with 75% similarity)',
+                        size=(40, 1), font=('Helvetica', 8, 'italic'))]
+            ])],
+            [sg.Text('Number Range:', size=(12, 1)),
+             sg.Input(key='-NUM-START-', size=(8, 1)),
              sg.Text('to'),
-             sg.Input(key='-NUM-END-', size=(10, 1))],
-            [sg.Text('DWG:', size=(8, 1)),
-             sg.Input(key='-DWG-', size=(25, 1))],
-            [sg.Text('ORIGIN:', size=(8, 1)),
-             sg.Input(key='-ORIGIN-', size=(25, 1))],
-            [sg.Text('DEST:', size=(8, 1)),
-             sg.Input(key='-DEST-', size=(25, 1))],
-            [sg.Text('Wire Type:', size=(8, 1)),
-             sg.Input(key='-WIRE-TYPE-', size=(25, 1))],
-            [sg.Text('Length:', size=(8, 1)),
-             sg.Input(key='-LENGTH-', size=(25, 1))],
-            [sg.Text('Project ID:', size=(8, 1)),
-             sg.Input(key='-PROJECT-', size=(25, 1))],
-            [sg.Button('Filter', key='-APPLY-FILTER-'),
+             sg.Input(key='-NUM-END-', size=(8, 1))],
+            [sg.Text('DWG:', size=(12, 1)),
+             sg.Input(key='-DWG-', size=(FIELD_LENGTH, 1))],
+            [sg.Text('Origin:', size=(12, 1)),
+             sg.Input(key='-ORIGIN-', size=(FIELD_LENGTH, 1))],
+            [sg.Text('Destination:', size=(12, 1)),
+             sg.Input(key='-DEST-', size=(FIELD_LENGTH, 1))],
+            [sg.Text('Wire Type:', size=(12, 1)),
+             sg.Input(key='-WIRE-TYPE-', size=(FIELD_LENGTH, 1))],
+            [sg.Text('ProjectID:', size=(12, 1)),
+             sg.Input(key='-PROJECT-', size=(FIELD_LENGTH, 1))],
+            [sg.Button('Apply Filter', key='-APPLY-FILTER-', bind_return_key=True),
              sg.Button('Clear Filter', key='-CLEAR-FILTER-')]
         ]
+        return layout
 
     def create_sort_group_frame(self):
         """Create the sort and group section of the UI"""
-        return [
-            [sg.Text('Sort By:'),
-             sg.Combo(
-                 values=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 
-                        'Wire Type', 'Length', 'Project ID'],
-                 key='-SORT-BY-',
-                 size=(15, 1)
-             )],
-            [sg.Radio('Sort Up', 'SORT', key='-SORT-ASC-', default=True),
-             sg.Radio('Sort Down', 'SORT', key='-SORT-DESC-'),
-             sg.Button('Sort', key='-APPLY-SORT-')],
-            [sg.Text('Group By:'),
-             sg.Combo(
-                 values=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 
-                        'Wire Type', 'Length', 'Project ID'],
-                 key='-GROUP-BY-',
-                 size=(15, 1)
-             )],
-            [sg.Button('Apply Grouping', key='-APPLY-GROUP-'),
-             sg.Button('Reset Grouping', key='-RESET-GROUP-')]
+        layout = [
+            [sg.Text('Sort by:', size=(8, 1)),
+             sg.Combo(['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Wire Type', 'Length'],
+                     key='-SORT-BY-', size=(15, 1)),
+             sg.Checkbox('Ascending', key='-SORT-ASC-', default=True)],
+            [sg.Text('Group by:', size=(8, 1)),
+             sg.Combo(['DWG', 'ORIGIN', 'DEST', 'Wire Type'],
+                     key='-GROUP-BY-', size=(15, 1))],
+            [sg.Button('Apply Sort', key='-APPLY-SORT-'),
+             sg.Button('Apply Group', key='-APPLY-GROUP-'),
+             sg.Button('Reset Group', key='-RESET-GROUP-')]
         ]
+        return layout
 
     def create_main_layout(self):
         """Create the main application layout"""
-        # Menu definition
         menu_def = [
-            ['&File', [
-                'Open::open_key', 
-                'Save', 
-                'Settings', 
-                '---',
-                'E&xit'
-            ]],
-            ['&Actions', [
-                'Clear &Filters', 
-                'Clear &Groups'
-            ]],
-            ['&Colors', [
-                'Default', 
-                'Dark', 
-                'Light'
-            ]],
-            ['&Help', ['About']]
-        ]
-
-        # Table with adjusted column widths
+            ['File', ['Open::open_key', 'Save', 'Settings', 'Exit']],
+            ['Help', ['About']]
+        ]  # Close menu_def list
+        
         table = sg.Table(
             values=[],
-            headings=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate DWG', 
-                     'Wire Type', 'Length', 'Note', 'Project ID'],
+            headings=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 
+                     'Wire Type', 'Length', 'Note', 'ProjectID'],
             auto_size_columns=False,
-            col_widths=[10, 15, 15, 15, 15, 15, 10, 20, 15],
+            col_widths=[10, 15, 60, 60, 15, 15, 10, 20, 10],
             justification='left',
+            num_rows=25,
             key='-TABLE-',
+            selected_row_colors='white on blue',
             enable_events=True,
             expand_x=True,
             expand_y=True,
-            enable_click_events=True,
-            row_colors=((0, '#191919'), (1, '#212121')),
-            text_color='white',
-            background_color='#191919',
-            pad=(10, 10)
+            enable_click_events=True
         )
 
-        # Status bar with progress
         status_bar = [
-            [sg.Text('Records: 0', key='-RECORD-COUNT-', size=(20, 1)),
+            [sg.Text('Records:', size=(8, 1)),
+             sg.Text('0', key='-RECORD-COUNT-', size=(8, 1)),
+             sg.VerticalSeparator(),
+             sg.Text('Status:', size=(8, 1)),
              sg.Text('Ready', key='-STATUS-TEXT-', size=(50, 1), relief=sg.RELIEF_SUNKEN)],
-            [sg.ProgressBar(100, orientation='h', size=(20, 20), key='-PROGRESS-', visible=False)]
-        ]
+            [sg.ProgressBar(100, orientation='h', size=(20, 20), 
+                              key='-PROGRESS-', visible=False)]
+        ]  # Close status_bar list
 
-        # Main layout
         layout = [
             [sg.Menu(menu_def, key='-MENU-', tearoff=False)],
-            [sg.Column(
-                [
+            [
+                sg.Column([
                     [sg.Frame('Filters', self.create_filter_frame(), pad=(10, 10))],
                     [sg.Frame('Sort and Group', self.create_sort_group_frame(), pad=(10, 10))]
-                ],
-                pad=(10, 10)
-            ),
-            sg.Column(
-                [[table]],
-                expand_x=True,
-                expand_y=True,
-                pad=(10, 10)
-            )],
-            status_bar
-        ]
-
+                ], pad=(10, 10)),
+                sg.Column([[table]], expand_x=True, expand_y=True, pad=(10, 10))
+            ],
+            [sg.Frame('Status', status_bar, relief=sg.RELIEF_SUNKEN, pad=(10, 10))]
+        ]  # Close layout list
+        
         return layout
 
     def create_window(self):
         """Create the main window"""
-        sg.theme('DarkGrey13')  # Or your preferred dark theme
+        sg.theme('DarkGrey13')
         
         window = sg.Window(
             'Cable Database Interface',
@@ -1563,92 +1463,5 @@ if __name__ == "__main__":
         print(f"Critical error: {str(e)}")
         traceback.print_exc()
         sg.popup_error(f"Critical Error: {str(e)}")
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+   
+ 
