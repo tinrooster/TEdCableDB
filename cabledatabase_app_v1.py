@@ -597,143 +597,88 @@ class DataManager:
             sg.popup_error(f"Error loading file: {str(e)}")
             return None, None
 
-    def apply_fuzzy_filter(self, df: pd.DataFrame, column: str, search_term: str, 
-                          threshold: int = 75) -> pd.DataFrame:
-        """Apply improved fuzzy matching with better logic"""
+    def apply_fuzzy_filter(self, df, column, search_term, threshold=75):
+        """Apply fuzzy matching with improved accuracy"""
         try:
-            if not search_term:
+            if not search_term or df.empty:
                 return df
 
-            # Convert series to string type and handle NaN values
+            # Convert search term to lowercase
+            search_term_lower = str(search_term).lower()
+            
+            # Convert column to string and handle NaN
             str_series = df[column].fillna('').astype(str)
             
-            # First try exact substring match (case-insensitive)
-            exact_matches = str_series.str.contains(search_term, case=False, na=False)
+            # Initialize result mask
+            mask = pd.Series(False, index=df.index)
             
-            # Then do fuzzy matching only on non-exact matches
-            fuzzy_scores = []
-            for val in str_series:
-                # If it's an exact match, give it 100% score
-                if search_term.lower() in val.lower():
-                    fuzzy_scores.append(100)
+            # First do direct substring matching (faster)
+            for idx, value in str_series.items():
+                value_lower = value.lower()
+                # If direct substring match, mark as match
+                if search_term_lower in value_lower:
+                    mask[idx] = True
                 else:
-                    # Calculate both ratio and partial ratio
-                    ratio = fuzz.ratio(val.lower(), search_term.lower())
-                    partial = fuzz.partial_ratio(val.lower(), search_term.lower())
-                    # Take the better of the two scores
-                    fuzzy_scores.append(max(ratio, partial))
+                    # Only do fuzzy matching if no direct match
+                    ratio = fuzz.partial_ratio(value_lower, search_term_lower)
+                    mask[idx] = ratio >= threshold
             
-            # Create mask for matches
-            mask = (pd.Series(fuzzy_scores) >= threshold) | exact_matches
+            # Get matching results
             matches = df[mask]
             
-            # Log matching details for debugging
-            self.log_debug(f"\nFuzzy match summary for '{search_term}' in {column}:")
-            self.log_debug(f"  Total records: {len(df)}")
-            self.log_debug(f"  Exact matches: {exact_matches.sum()}")
-            self.log_debug(f"  Fuzzy matches: {len(matches) - exact_matches.sum()}")
-            self.log_debug(f"  Total matches: {len(matches)}")
-            
-            # Log some example matches
-            if not matches.empty:
-                self.log_debug("\nExample matches:")
-                for idx, row in matches.head().iterrows():
-                    val = str(row[column])
-                    score = fuzzy_scores[idx]
-                    self.log_debug(f"  '{val}' -> {score}% match")
+            # Debug info
+            print(f"Fuzzy search for '{search_term}' in {column}:")
+            print(f"Total records: {len(df)}")
+            print(f"Matches found: {len(matches)}")
             
             return matches
-            
+                
         except Exception as e:
-            self.log_debug(f"Error in fuzzy matching: {str(e)}")
+            print(f"Error in fuzzy matching: {str(e)}")
+            traceback.print_exc()
             return df
 
-    def apply_filters(self, filters: Dict[str, Any], use_exact: bool = False, 
-                     use_fuzzy: bool = False) -> pd.DataFrame:
+    def apply_filters(self, filters: Dict[str, Any], use_exact: bool = False, use_fuzzy: bool = False) -> pd.DataFrame:
+        """Apply filters to the DataFrame"""
         try:
             if self.df is None:
                 return pd.DataFrame()
             
-            self.current_filters = filters
             filtered_df = self.df.copy()
-            initial_record_count = len(filtered_df)
             
-            self.log_debug("Starting filter application...")
-            search_mode = "FUZZY" if use_fuzzy else ("EXACT" if use_exact else "CONTAINS")
-            self.log_debug(f"Search mode: {search_mode}")
-            
-            for column, filter_value in filters.items():
-                if not filter_value:
+            for field, value in filters.items():
+                if not value:  # Skip empty filters
                     continue
                 
-                self.log_debug(f"Applying {search_mode} filter for {column}: {filter_value}")
-                initial_count = len(filtered_df)
-                
-                if column == '-NUM-START-':
+                if field == 'NUMBER':
                     try:
-                        start_num = int(float(filter_value))
-                        filtered_df = filtered_df[filtered_df['NUMBER'] >= start_num]
-                        self.log_debug(f"NUMBER >= {start_num}: {initial_count} → {len(filtered_df)} records")
+                        num_value = int(float(value))
+                        filtered_df = filtered_df[filtered_df['NUMBER'] == num_value]
                     except ValueError:
-                        self.log_debug(f"Invalid NUMBER start value: {filter_value}")
-                        
-                elif column == '-NUM-END-':
-                    try:
-                        end_num = int(float(filter_value))
-                        filtered_df = filtered_df[filtered_df['NUMBER'] <= end_num]
-                        self.log_debug(f"NUMBER <= {end_num}: {initial_count} → {len(filtered_df)} records")
-                    except ValueError:
-                        self.log_debug(f"Invalid NUMBER end value: {filter_value}")
-                        
+                        print(f"Invalid number value: {value}")
+                        continue
                 else:
-                    column_mapping = {
-                        '-DWG-': 'DWG',
-                        '-ORIGIN-': 'ORIGIN',
-                        '-DEST-': 'DEST',
-                        '-WIRE-TYPE-': 'Wire Type',
-                        '-PROJECT-': 'ProjectID'
-                    }
-                    
-                    actual_column = column_mapping.get(column)
-                    if actual_column and isinstance(filter_value, str) and filter_value.strip():
-                        if use_fuzzy:
-                            before_count = len(filtered_df)
-                            filtered_df = self.apply_fuzzy_filter(filtered_df, actual_column, filter_value)
-                            self.log_debug(f"Fuzzy match results for '{filter_value}' in {actual_column}:")
-                            self.log_debug(f"  Before: {before_count} records")
-                            self.log_debug(f"  After: {len(filtered_df)} records")
-                            self.log_debug(f"  Similarity threshold: 75%")
-                        elif use_exact:
-                            # Exact matching (case-insensitive)
-                            mask = filtered_df[actual_column].astype(str).str.lower() == filter_value.lower()
-                            filtered_df = filtered_df[mask]
-                        else:
-                            # Simple contains matching (case-insensitive)
-                            mask = filtered_df[actual_column].astype(str).str.contains(
-                                filter_value, 
-                                case=False, 
-                                regex=False, 
-                                na=False
-                            )
-                            filtered_df = filtered_df[mask]
-                            
-                        self.log_debug(f"{actual_column} filter: {initial_count} → {len(filtered_df)} records")
-
-            self.filtered_df = filtered_df  # Make sure we store the filtered results
-            result_msg = (
-                f"Filter results ({search_mode} search):\n"
-                f"  Starting records: {initial_record_count}\n"
-                f"  Filtered records: {len(filtered_df)}"
-            )
-            self.log_debug(result_msg)
-            self.update_status(f"{search_mode} search: {len(filtered_df)} matches")
+                    if use_fuzzy:
+                        filtered_df = self.apply_fuzzy_filter(filtered_df, field, str(value))
+                    elif use_exact:
+                        # Exact matching (case-insensitive)
+                        mask = filtered_df[field].astype(str).str.lower() == str(value).lower()
+                        filtered_df = filtered_df[mask]
+                    else:
+                        # Simple contains matching (case-insensitive)
+                        # Escape special regex characters and treat as literal string
+                        search_value = re.escape(str(value))
+                        mask = filtered_df[field].fillna('').astype(str).apply(
+                            lambda x: search_value.lower() in x.lower()
+                        )
+                        filtered_df = filtered_df[mask]
             
+            print(f"Filter applied: {field}={value}, matches: {len(filtered_df)}")
             return filtered_df
             
         except Exception as e:
-            self.log_debug(f"Error in filtering: {str(e)}")
+            print(f"Error in filtering: {str(e)}")
             traceback.print_exc()
-            self.filtered_df = self.df.copy()  # Reset to unfiltered on error
             return self.df.copy()
 
     def group_by_field(self, field: str) -> pd.DataFrame:
@@ -1136,11 +1081,11 @@ class EventHandler:
             self.window['-RECORD-COUNT-'].update(f'Records: {len(self.data_manager.df)}')
 
     def handle_filter_event(self, values):
-        """Handle filter application"""
+        """Handle filter application with improved search"""
         try:
             # Get filter values
             filters = {
-                'NUMBER': (values['-NUM-START-'], values['-NUM-END-']),
+                'NUMBER': values['-NUM-START-'],
                 'DWG': values['-DWG-'],
                 'ORIGIN': values['-ORIGIN-'],
                 'DEST': values['-DEST-'],
@@ -1152,31 +1097,41 @@ class EventHandler:
             exact_match = values['-EXACT-']
             fuzzy_search = values['-FUZZY-SEARCH-']
             
-            # Apply filters
+            # Start with full dataset
             df = self.data_manager.df.copy() if self.data_manager.df is not None else None
-            if df is None:
+            if df is None or df.empty:
                 return
                 
             records_before = len(df)
             
+            # Apply each non-empty filter
             for field, value in filters.items():
-                if field == 'NUMBER' and (value[0] or value[1]):
-                    # Handle number range
-                    start = int(value[0]) if value[0] else None
-                    end = int(value[1]) if value[1] else None
-                    if start is not None and end is not None:
-                        df = df[df['NUMBER'].between(start, end)]
-                    elif start is not None:
-                        df = df[df['NUMBER'] >= start]
-                    elif end is not None:
-                        df = df[df['NUMBER'] <= end]
-                elif value:  # For other fields with non-empty values
-                    if exact_match:
-                        df = df[df[field].astype(str).str.contains(str(value), case=False, na=False)]
-                    elif fuzzy_search:
+                if not value:  # Skip empty filters
+                    continue
+                    
+                print(f"Applying filter: {field}={value}")
+                
+                if field == 'NUMBER':
+                    try:
+                        num_value = int(float(value))
+                        df = df[df['NUMBER'] == num_value]
+                    except ValueError:
+                        print(f"Invalid number value: {value}")
+                        continue
+                else:
+                    if fuzzy_search:
                         df = self.apply_fuzzy_filter(df, field, str(value))
-                    else:  # Default contains search
-                        df = df[df[field].astype(str).str.contains(str(value), case=False, na=False)]
+                    elif exact_match:
+                        # Exact match (case-insensitive)
+                        df = df[df[field].fillna('').astype(str).str.lower() == str(value).lower()]
+                    else:
+                        # Simple contains search (case-insensitive)
+                        search_value = str(value).lower()
+                        df = df[df[field].fillna('').astype(str).apply(
+                            lambda x: search_value in x.lower()
+                        )]
+                    
+                print(f"Records after {field} filter: {len(df)}")
             
             # Update the filtered dataframe
             self.data_manager.filtered_df = df
@@ -1186,9 +1141,9 @@ class EventHandler:
             self.window['-RECORD-COUNT-'].update(f'Records: {len(df)}')
             
             # Update status
-            records_after = len(df)
+            records_filtered = records_before - len(df)
             self.window['-STATUS-TEXT-'].update(
-                f'Filter applied: {records_before - records_after} records filtered out'
+                f'Filter applied: {records_filtered} records filtered out'
             )
             
         except Exception as e:
