@@ -10,7 +10,6 @@ from thefuzz import fuzz
 import re
 import time
 import pandas as pd
-import tkinter.ttk as ttk
 
 # Constants
 DEFAULT_SETTINGS = {
@@ -252,8 +251,16 @@ class DataManager:
                 self.update_status(f"File not found: {filename}")
                 return False
 
-            # Read Excel file
+            self.update_status("Opening Excel file...")
+            self.update_progress(10)
+            
+            # Show immediate feedback before potentially long operation
+            self.update_status("Reading Excel file (this may take a few moments)...")
+            self.update_progress(20)
             xl = pd.ExcelFile(filename)
+            
+            self.update_status("Identifying target sheet...")
+            self.update_progress(30)
             
             if 'CableList' in xl.sheet_names:
                 sheet_name = 'CableList'
@@ -263,19 +270,50 @@ class DataManager:
                 self.update_status("No valid sheet found")
                 return False
 
-            # Read the sheet
+            # Critical long operation - show detailed status
+            self.update_status(f"Reading sheet '{sheet_name}' (this may take several seconds)...")
+            self.update_progress(40)
+            
+            # Force window refresh before long operation
+            if self.window:
+                self.window.refresh()
+            
             df = pd.read_excel(filename, sheet_name=sheet_name)
             
-            # Process the dataframe
-            if self.process_dataframe(df):
-                self.update_status("File loaded successfully")
-                return True
-            return False
+            # Convert NUMBER column to integer, handling any decimal places
+            if 'NUMBER' in df.columns:
+                self.update_status("Converting NUMBER column to integers...")
+                df['NUMBER'] = df['NUMBER'].fillna(-1)  # Handle NaN values
+                df['NUMBER'] = df['NUMBER'].astype(float).astype(int)
+                
+            self.update_status("Processing data columns...")
+            self.update_progress(70)
+
+            # Map Project ID column name
+            if 'Project ID' in df.columns:
+                df.rename(columns={'Project ID': 'ProjectID'}, inplace=True)
+
+            # Validate required columns exist
+            missing_cols = [col for col in self.expected_columns if col not in df.columns]
+            if missing_cols:
+                self.update_status(f"Error: Missing columns {', '.join(missing_cols)}")
+                return False
+
+            self.update_status("Finalizing data load...")
+            self.update_progress(90)
+
+            # Keep only required columns
+            self.df = df[self.expected_columns].copy()
+            self.original_df = self.df.copy()
             
+            self.update_status(f"Successfully loaded {len(self.df)} records")
+            self.update_progress(100)
+            return True
+
         except Exception as e:
-            print(f"Error loading file: {str(e)}")
+            error_msg = f"Error loading file: {str(e)}"
+            self.log_debug(error_msg)
             traceback.print_exc()
-            self.update_status(f"Error: {str(e)}")
             return False
 
     def log_debug(self, message: str):
@@ -812,169 +850,426 @@ class DataManager:
         
         return result
 
-    def process_dataframe(self, df: pd.DataFrame) -> bool:
-        """Process and validate the loaded dataframe"""
-        try:
-            # Check for missing columns
-            missing_cols = [col for col in self.expected_columns if col not in df.columns]
-            if missing_cols:
-                print(f"Missing columns: {missing_cols}")
-                mapping = show_column_mapping_dialog(df.columns.tolist(), missing_cols)
-                
-                if mapping:
-                    df = df.rename(columns=mapping)
-                    remaining_missing = [col for col in missing_cols if col not in df.columns]
-                    for col in remaining_missing:
-                        df[col] = ''
-                else:
-                    return False
+def show_color_config_window(settings):
+    """Show color configuration window"""
+    
+    # Load existing color settings or use defaults
+    color_settings = settings.settings.get('colors', {
+        'Color 1': {'color': '#FFFF00', 'keywords': []},
+        'Color 2': {'color': '#E6E6FA', 'keywords': []},
+        'Color 3': {'color': '#90EE90', 'keywords': []},
+        'Color 4': {'color': '#ADD8E6', 'keywords': []},
+        'Color 5': {'color': '#FFB6C1', 'keywords': []}
+    })
+    
+    layout = [
+        [sg.Text('Color Categories Configuration', font='Any 12 bold')],
+        *[
+            [
+                sg.Text(f'Color {i+1}:', size=(8,1)),
+                sg.Input(key=f'-COLOR{i+1}-', size=(10,1), enable_events=True),
+                sg.ColorChooserButton('Pick', target=f'-COLOR{i+1}-'),
+                sg.Text('Keywords:'),
+                sg.Input(key=f'-KEYWORDS{i+1}-', size=(30,1))
+            ] for i in range(6)
+        ],
+        [sg.Text('_' * 80)],
+        [sg.Text('Add New Category:')],
+        [sg.Input(key='-NEW-COLOR-NAME-', size=(20,1)), 
+         sg.ColorChooserButton('Pick Color'),
+         sg.Input(key='-NEW-KEYWORDS-', size=(30,1))],
+        [sg.Button('Add Category')],
+        [sg.Button('Save'), sg.Button('Cancel')]
+    ]
+    return sg.Window('Color Settings', layout, finalize=True, modal=True)
 
-            # Keep only expected columns
-            self.df = df[self.expected_columns].copy()
-            self.original_df = self.df.copy()
+def create_export_options_window():
+    """Create export options popup window"""
+    layout = [
+        [sg.Text('Export Options', font='Any 12 bold')],
+        [sg.Text('Export Format:')],
+        [sg.Radio('Excel', 'FORMAT', key='-EXCEL-', default=True),
+         sg.Radio('CSV', 'FORMAT', key='-CSV-')],
+        [sg.Text('Include:')],
+        [sg.Checkbox('Headers', key='-HEADERS-', default=True),
+         sg.Checkbox('Row Numbers', key='-ROW-NUMS-')],
+        [sg.Text('Columns to Export:')],
+        [sg.Listbox(values=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 
+                           'Wire Type', 'Length', 'Note', 'Project ID'],
+                   select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE,
+                   size=(30, 6),
+                   key='-EXPORT-COLS-')],
+        [sg.Button('Export'), sg.Button('Cancel')]
+    ]
+
+    window = sg.Window('Export Options', layout, finalize=True, modal=True)
+    
+    while True:
+        event, values = window.read()
+        if event in (sg.WIN_CLOSED, 'Cancel'):
+            window.close()
+            return None
+        if event == 'Export':
+            window.close()
+            return values
             
-            # Format NUMBER column
-            if 'NUMBER' in self.df.columns:
-                def format_number(x):
-                    if pd.isna(x):
-                        return x
-                    try:
-                        # Handle string values like 'xxxx'
-                        if isinstance(x, str) and not x.replace('.', '').isdigit():
-                            return x
+    window.close()
+    return None
+
+def show_settings_window(settings):
+    """Show settings dialog with comprehensive configuration options"""
+    layout = [
+        [sg.Frame('File Settings', [
+            [sg.Text("Default Excel File:", size=(15, 1))],
+            [sg.Input(settings.settings.get('default_file_path', ''), 
+                     key='-DEFAULT-FILE-', 
+                     size=(50, 1)),
+             sg.FileBrowse(file_types=(("Excel Files", "*.xlsx;*.xlsm"),))],
+            [sg.Checkbox("Auto-load default file on startup", 
+                        key='-AUTO-LOAD-',
+                        default=settings.settings.get('auto_load_default', True))]
+        ])],
+        
+        [sg.Frame('Display Settings', [
+            [sg.Text("Table Row Height:", size=(15, 1)),
+             sg.Input(settings.settings.get('row_height', '25'), 
+                     key='-ROW-HEIGHT-', 
+                     size=(5, 1)),
+             sg.Text("pixels")],
+            [sg.Text("Font Size:", size=(15, 1)),
+             sg.Combo(values=[8, 9, 10, 11, 12, 14], 
+                     default_value=settings.settings.get('font_size', 10),
+                     key='-FONT-SIZE-',
+                     size=(5, 1))]
+        ])],
+        
+        [sg.Frame('Color Theme', [
+            [sg.Text("Application Theme:", size=(15, 1)),
+             sg.Combo(values=['Default', 'Dark', 'Light', 'System'], 
+                     default_value=settings.settings.get('theme', 'Default'),
+                     key='-THEME-',
+                     size=(10, 1))],
+            [sg.Text("Table Colors:")],
+            [sg.Text("Background:", size=(12, 1)),
+             sg.Input(settings.settings.get('table_bg', '#232323'), 
+                     key='-TABLE-BG-', 
+                     size=(10, 1)),
+             sg.ColorChooserButton('Pick')],
+            [sg.Text("Alternate Row:", size=(12, 1)),
+             sg.Input(settings.settings.get('table_alt', '#191919'), 
+                     key='-TABLE-ALT-', 
+                     size=(10, 1)),
+             sg.ColorChooserButton('Pick')]
+        ])],
+        
+        [sg.Frame('Startup Behavior', [
+            [sg.Checkbox("Remember window position", 
+                        key='-REMEMBER-POS-',
+                        default=settings.settings.get('remember_position', True))],
+            [sg.Checkbox("Remember last filters", 
+                        key='-REMEMBER-FILTERS-',
+                        default=settings.settings.get('remember_filters', False))],
+            [sg.Checkbox("Show startup tips", 
+                        key='-SHOW-TIPS-',
+                        default=settings.settings.get('show_tips', True))]
+        ])],
+        
+        [sg.Button("Save", bind_return_key=True), 
+         sg.Button("Cancel"),
+         sg.Button("Reset to Defaults")]
+    ]
+    
+    window = sg.Window("Settings", layout, modal=True, finalize=True)
+    window["Save"].set_focus()
+    
+    while True:
+        event, values = window.read()
+        
+        if event in (sg.WIN_CLOSED, "Cancel"):
+            break
+            
+        if event == "Reset to Defaults":
+            # Confirm before resetting
+            if sg.popup_yes_no("Are you sure you want to reset all settings to defaults?",
+                             title="Confirm Reset") == "Yes":
+                settings.settings = DEFAULT_SETTINGS.copy()
+                settings.save_settings()
+                break
+        
+        if event == "Save":
+            try:
+                # Validate numeric inputs
+                row_height = int(values['-ROW-HEIGHT-'])
+                if not (10 <= row_height <= 100):
+                    raise ValueError("Row height must be between 10 and 100")
+                
+                # Update settings
+                settings.settings.update({
+                    'default_file_path': values['-DEFAULT-FILE-'],
+                    'auto_load_default': values['-AUTO-LOAD-'],
+                    'row_height': row_height,
+                    'font_size': values['-FONT-SIZE-'],
+                    'theme': values['-THEME-'],
+                    'table_bg': values['-TABLE-BG-'],
+                    'table_alt': values['-TABLE-ALT-'],
+                    'remember_position': values['-REMEMBER-POS-'],
+                    'remember_filters': values['-REMEMBER-FILTERS-'],
+                    'show_tips': values['-SHOW-TIPS-']
+                })
+                
+                settings.save_settings()
+                sg.popup("Settings saved successfully!", title="Success")
+                break
+                
+            except ValueError as e:
+                sg.popup_error(f"Invalid input: {str(e)}", title="Error")
+            except Exception as e:
+                sg.popup_error(f"Error saving settings: {str(e)}", title="Error")
+    
+    window.close()
+
+class EventHandler:
+    def __init__(self, window, data_manager):
+        self.window = window
+        self.data_manager = data_manager
+        self.current_group_field = None
+
+    def handle_event(self, event, values) -> bool:
+        """Handle all window events"""
+        try:
+            print(f"Handling event: {event}")
+            
+            if event in (None, 'Exit', sg.WIN_CLOSED):
+                return False
+                
+            if event == '-APPLY-FILTER-':
+                self.handle_filter_event(values)
+                
+            elif event == '-CLEAR-FILTER-':
+                self.clear_filters()
+                # Reset to original data
+                if self.data_manager.original_df is not None:
+                    self.window['-TABLE-'].update(
+                        values=self.data_manager.original_df.values.tolist()
+                    )
+                    self.window['-RECORD-COUNT-'].update(
+                        f'Records: {len(self.data_manager.original_df)}'
+                    )
+                    
+            elif event in ('-APPLY-SORT-', '-APPLY-GROUP-', '-RESET-GROUP-'):
+                self.handle_group_sort_event(event, values)
+                
+            elif event.startswith('Open'):
+                # Handle file open
+                filename = sg.popup_get_file('Choose Excel file', 
+                                           file_types=(("Excel Files", "*.xlsx"),))
+                if filename:
+                    if self.data_manager.load_file(filename):
+                        self.update_table()
                         
-                        # Convert to string and clean it
-                        num_str = str(x).strip()
-                        # Remove any decimal part
-                        if '.' in num_str:
-                            num_str = num_str.split('.')[0]
-                        # Keep leading zeros for single digit numbers
-                        if len(num_str) == 1:
-                            return f"0{num_str}"
-                        return num_str
-                    except:
-                        return str(x).split('.')[0]  # Fallback: just remove decimal
-                
-                # Apply the formatting and convert to string type
-                self.df['NUMBER'] = self.df['NUMBER'].apply(format_number)
-                self.original_df['NUMBER'] = self.original_df['NUMBER'].apply(format_number)
-                
-                # Ensure NUMBER column is string type to preserve formatting
-                self.df['NUMBER'] = self.df['NUMBER'].astype(str)
-                self.original_df['NUMBER'] = self.original_df['NUMBER'].astype(str)
+            return True
             
-            print(f"Successfully processed {len(self.df)} records")
+        except Exception as e:
+            print(f"Error handling event: {str(e)}")
+            traceback.print_exc()
             return True
 
-        except Exception as e:
-            print(f"Error processing dataframe: {str(e)}")
-            traceback.print_exc()
-            return False
+    def update_table(self):
+        """Update the table with current data"""
+        if self.data_manager.df is not None:
+            self.window['-TABLE-'].update(values=self.data_manager.df.values.tolist())
+            self.window['-RECORD-COUNT-'].update(f'Records: {len(self.data_manager.df)}')
 
-    def sort_data(self, column, ascending=True):
-        """Sort the dataframe by specified column"""
+    def handle_filter_event(self, values):
+        """Handle filter application with improved search"""
         try:
-            if column in self.df.columns:
-                self.df = self.df.sort_values(by=column, ascending=ascending)
-                print(f"Data sorted by {column} {'ascending' if ascending else 'descending'}")
-                return True
-            return False
-        except Exception as e:
-            print(f"Error sorting data: {str(e)}")
-            return False
-
-    def apply_filters(self, filters, use_fuzzy=False):
-        """Apply filters to the dataframe"""
-        try:
-            # Start with original data
-            filtered_df = self.original_df.copy()
+            # Get filter values
+            filters = {
+                'NUMBER': values['-NUM-START-'],
+                'DWG': values['-DWG-'],
+                'ORIGIN': values['-ORIGIN-'],
+                'DEST': values['-DEST-'],
+                'Wire Type': values['-WIRE-TYPE-'],
+                'ProjectID': values['-PROJECT-']
+            }
             
-            for column, value in filters.items():
+            # Get search mode
+            exact_match = values['-EXACT-']
+            fuzzy_search = values['-FUZZY-SEARCH-']
+            
+            # Start with full dataset
+            df = self.data_manager.df.copy() if self.data_manager.df is not None else None
+            if df is None or df.empty:
+                return
+                
+            records_before = len(df)
+            
+            # Apply each non-empty filter
+            for field, value in filters.items():
                 if not value:  # Skip empty filters
                     continue
                     
-                if column == 'NUMBER':
-                    start, end = value  # Unpack tuple for number range
-                    if start:
-                        filtered_df = filtered_df[filtered_df['NUMBER'] >= float(start)]
-                    if end:
-                        filtered_df = filtered_df[filtered_df['NUMBER'] <= float(end)]
+                print(f"Applying filter: {field}={value}")
+                
+                if field == 'NUMBER':
+                    try:
+                        num_value = int(float(value))
+                        df = df[df['NUMBER'] == num_value]
+                    except ValueError:
+                        print(f"Invalid number value: {value}")
+                        continue
                 else:
-                    if use_fuzzy:
-                        # Fuzzy matching using string contains
-                        filtered_df = filtered_df[filtered_df[column].astype(str).str.contains(str(value), case=False, na=False)]
+                    if fuzzy_search:
+                        df = self.apply_fuzzy_filter(df, field, str(value))
+                    elif exact_match:
+                        # Exact match (case-insensitive)
+                        df = df[df[field].fillna('').astype(str).str.lower() == str(value).lower()]
                     else:
-                        # Exact matching
-                        filtered_df = filtered_df[filtered_df[column].astype(str).str.lower() == str(value).lower()]
+                        # Simple contains search (case-insensitive)
+                        search_value = str(value).lower()
+                        df = df[df[field].fillna('').astype(str).apply(
+                            lambda x: search_value in x.lower()
+                        )]
+                    
+                print(f"Records after {field} filter: {len(df)}")
             
-            self.df = filtered_df
-            print(f"Applied filters, {len(self.df)} rows remaining")
-            return True
+            # Update the filtered dataframe
+            self.data_manager.filtered_df = df
+            
+            # Update the table
+            self.window['-TABLE-'].update(values=df.values.tolist())
+            self.window['-RECORD-COUNT-'].update(f'Records: {len(df)}')
+            
+            # Update status
+            records_filtered = records_before - len(df)
+            self.window['-STATUS-TEXT-'].update(
+                f'Filter applied: {records_filtered} records filtered out'
+            )
             
         except Exception as e:
-            print(f"Error in filtering: {str(e)}")
+            print(f"Error applying filter: {str(e)}")
             traceback.print_exc()
-            return False
+            sg.popup_error(f"Error applying filter: {str(e)}")
 
-    def handle_group_event(self, values):
-        """Handle grouping of data"""
+    def apply_fuzzy_filter(self, df, field, search_term, threshold=75):
+        """Apply fuzzy matching to filter"""
+        if not search_term:
+            return df
+            
+        # Convert values to strings and handle NaN
+        str_series = df[field].fillna('').astype(str)
+        
+        # First try exact substring match (case-insensitive)
+        exact_matches = str_series.str.contains(search_term, case=False, na=False)
+        
+        # Then do fuzzy matching
+        fuzzy_scores = []
+        for val in str_series:
+            if search_term.lower() in val.lower():
+                fuzzy_scores.append(100)
+            else:
+                ratio = fuzz.ratio(val.lower(), search_term.lower())
+                partial = fuzz.partial_ratio(val.lower(), search_term.lower())
+                fuzzy_scores.append(max(ratio, partial))
+        
+        # Create mask for matches
+        mask = (pd.Series(fuzzy_scores) >= threshold) | exact_matches
+        return df[mask]
+
+    def clear_filters(self):
+        """Clear all filters"""
         try:
-            group_col = values.get('Group by:', '')
-            if group_col and group_col in self.data_manager.df.columns:
-                # Group the data and calculate counts
-                grouped = self.data_manager.df.groupby(group_col).size().reset_index(name='Count')
-                # Update table with grouped data
-                self.window['-TABLE-'].update(values=grouped.values.tolist())
-                print(f"Data grouped by {group_col}")
-            return True
+            # Clear all filter inputs
+            filter_keys = ['-NUM-START-', '-NUM-END-', '-DWG-', '-ORIGIN-', 
+                         '-DEST-', '-WIRE-TYPE-', '-PROJECT-']
+            for key in filter_keys:
+                self.window[key].update('')
+            
+            # Reset checkboxes
+            self.window['-EXACT-'].update(False)
+            self.window['-FUZZY-SEARCH-'].update(False)
+            
+            # Reset to original data
+            if self.data_manager.original_df is not None:
+                self.data_manager.filtered_df = self.data_manager.original_df.copy()
+                self.window['-TABLE-'].update(
+                    values=self.data_manager.original_df.values.tolist()
+                )
+                self.window['-RECORD-COUNT-'].update(
+                    f'Records: {len(self.data_manager.original_df)}'
+                )
+                self.window['-STATUS-TEXT-'].update('Filters cleared')
+                
         except Exception as e:
-            print(f"Error in group handling: {str(e)}")
+            print(f"Error clearing filters: {str(e)}")
             traceback.print_exc()
-            return True
+            sg.popup_error(f"Error clearing filters: {str(e)}")
 
-class ThemeManager:
-    """Manage table colors"""
-    
-    @classmethod
-    def apply_theme(cls, window):
-        """Apply default table colors"""
-        colors = {
-            'even_row': '#181818',
-            'odd_row': '#232323',
-            'header': '#303030',
-            'text': 'white',
-            'selected': ('white', '#0078D7')
-        }
-        
-        # Get table element
-        table = window['-TABLE-']
-        
-        # Create row colors list for current data
-        num_rows = len(table.Values) if table.Values else 1000
-        row_colors = []
-        for i in range(num_rows):
-            color = colors['even_row'] if i % 2 == 0 else colors['odd_row']
-            row_colors.append((i, color))
-        
-        # Update table with only supported parameters
-        table.update(
-            values=table.Values,  # Preserve current values
-            row_colors=row_colors
-        )
+    def handle_group_sort_event(self, event, values):
+        """Handle sorting and grouping events"""
+        try:
+            if self.data_manager.df is None:
+                sg.popup_error("No data loaded")
+                return
+
+            if event == '-APPLY-SORT-':
+                sort_by = values['-SORT-BY-']
+                ascending = values['-SORT-ASC-']
+                
+                if not sort_by:
+                    sg.popup_error("Please select a column to sort by")
+                    return
+                    
+                print(f"Sorting by {sort_by} ({'ascending' if ascending else 'descending'})")
+                self.data_manager.handle_sort(sort_by, ascending)
+                self.update_table()
+                self.window['-STATUS-TEXT-'].update(f"Sorted by {sort_by}")
+                
+            elif event == '-APPLY-GROUP-':
+                group_by = values['-GROUP-BY-']
+                
+                if not group_by:
+                    sg.popup_error("Please select a column to group by")
+                    return
+                    
+                print(f"Grouping by {group_by}")
+                self.data_manager.apply_grouping(group_by)
+                self.update_table()
+                self.window['-STATUS-TEXT-'].update(f"Grouped by {group_by}")
+                
+            elif event == '-RESET-GROUP-':
+                print("Resetting groups")
+                # Reset to original order if filtered, otherwise use original dataframe
+                if self.data_manager.filtered_df is not None:
+                    self.data_manager.filtered_df = self.data_manager.filtered_df.sort_index()
+                else:
+                    self.data_manager.df = self.data_manager.df.sort_index()
+                self.update_table()
+                self.window['-STATUS-TEXT-'].update("Groups reset")
+                
+        except Exception as e:
+            error_msg = f"Error in sorting/grouping: {str(e)}"
+            print(error_msg)
+            traceback.print_exc()
+            sg.popup_error(error_msg)
+
+    def update_table(self):
+        """Update the table display with current data"""
+        try:
+            # Use filtered_df if it exists, otherwise use main df
+            df_to_display = (self.data_manager.filtered_df 
+                           if self.data_manager.filtered_df is not None 
+                           else self.data_manager.df)
+            
+            if df_to_display is not None:
+                self.window['-TABLE-'].update(values=df_to_display.values.tolist())
+                self.window['-RECORD-COUNT-'].update(f'Records: {len(df_to_display)}')
+            
+        except Exception as e:
+            print(f"Error updating table: {str(e)}")
+            traceback.print_exc()
 
 class UIBuilder:
-    def __init__(self):
-        # Define the columns for sorting and grouping
-        self.COLUMNS = [
-            'NUMBER',
-            'DWG',
-            'ORIGIN',
-            'DEST',
-            'Wire Type',
-            'Length',
-            'ProjectID'
-        ]
-
     def create_filter_frame(self):
         """Create the filter section of the UI"""
         FIELD_LENGTH = 20  # Standard length for all input fields
@@ -1000,20 +1295,21 @@ class UIBuilder:
              sg.Input(key='-WIRE-TYPE-', size=(FIELD_LENGTH, 1))],
             [sg.Text('ProjectID:', size=(12, 1)),
              sg.Input(key='-PROJECT-', size=(FIELD_LENGTH, 1))],
-            [sg.Button('Apply Filter', key='-APPLY-FILTER-', bind_return_key=True, 
-                      size=(20, 1), font=('Helvetica', 10, 'bold')),
-             sg.Button('Clear Filter')]
+            [sg.Button('Apply Filter', key='-APPLY-FILTER-', bind_return_key=True),
+             sg.Button('Clear Filter', key='-CLEAR-FILTER-')]
         ]
         return layout
 
     def create_sort_group_frame(self):
-        """Create the sort and group section"""
+        """Create the sort and group section of the UI"""
         layout = [
             [sg.Text('Sort by:', size=(8, 1)),
-             sg.Combo(values=self.COLUMNS, key='Sort by:', size=(20, 1)),
-             sg.Checkbox('Ascending', key='-ASCENDING-', default=True)],
+             sg.Combo(['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Wire Type', 'Length'],
+                     key='-SORT-BY-', size=(15, 1)),
+             sg.Checkbox('Ascending', key='-SORT-ASC-', default=True)],
             [sg.Text('Group by:', size=(8, 1)),
-             sg.Combo(values=self.COLUMNS, key='Group by:', size=(20, 1))],
+             sg.Combo(['DWG', 'ORIGIN', 'DEST', 'ProjectID'],
+                     key='-GROUP-BY-', size=(15, 1))],
             [sg.Button('Apply Sort', key='-APPLY-SORT-'),
              sg.Button('Apply Group', key='-APPLY-GROUP-'),
              sg.Button('Reset Group', key='-RESET-GROUP-')]
@@ -1021,31 +1317,12 @@ class UIBuilder:
         return layout
 
     def create_main_layout(self):
-        """Create the main application layout with working table colors"""
-        # Define menu
+        """Create the main application layout"""
         menu_def = [
             ['File', ['Open::open_key', 'Save', 'Settings', 'Exit']],
             ['Help', ['About']]
         ]
         
-        # Create frames
-        filter_frame = sg.Frame('Filters', self.create_filter_frame(), pad=(10, 5))
-        sort_group_frame = sg.Frame('Sort and Group', self.create_sort_group_frame(), pad=(10, 5))
-        
-        # Define table colors
-        table_colors = {
-            'even_row': '#181818',
-            'odd_row': '#232323',
-            'header': '#303030',
-            'text': 'white',
-            'selected': ('white', 'blue')
-        }
-        
-        # Create alternating row colors
-        row_colors = [(i, table_colors['even_row'] if i % 2 == 0 else table_colors['odd_row']) 
-                     for i in range(1000)]
-        
-        # Create table with explicit colors
         table = sg.Table(
             values=[],
             headings=['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Alternate Dwg', 
@@ -1055,19 +1332,13 @@ class UIBuilder:
             justification='left',
             num_rows=25,
             key='-TABLE-',
-            selected_row_colors=table_colors['selected'],
-            row_colors=row_colors,
-            background_color=table_colors['even_row'],
-            text_color=table_colors['text'],
-            header_background_color=table_colors['header'],
-            header_text_color=table_colors['text'],
+            selected_row_colors='white on blue',
             enable_events=True,
             expand_x=True,
             expand_y=True,
             enable_click_events=True
         )
-        
-        # Create status bar
+
         status_bar = [
             [sg.Text('Records:', size=(8, 1)),
              sg.Text('0', key='-RECORD-COUNT-', size=(8, 1)),
@@ -1075,15 +1346,19 @@ class UIBuilder:
              sg.Text('Status:', size=(8, 1)),
              sg.Text('Ready', key='-STATUS-TEXT-', size=(50, 1), relief=sg.RELIEF_SUNKEN)],
             [sg.ProgressBar(100, orientation='h', size=(20, 20), 
-                          key='-PROGRESS-', visible=False)]
+                              key='-PROGRESS-', visible=False)]
         ]
-        
-        # Combine all elements into final layout
+
         layout = [
             [sg.Menu(menu_def, key='-MENU-', tearoff=False)],
-            [filter_frame, sort_group_frame],
-            [table],
-            [sg.Frame('Status', status_bar, relief=sg.RELIEF_SUNKEN, pad=(10, 5))]
+            [
+                sg.Column([
+                    [sg.Frame('Filters', self.create_filter_frame(), pad=(10, 10))],
+                    [sg.Frame('Sort and Group', self.create_sort_group_frame(), pad=(10, 10))]
+                ], pad=(10, 10)),
+                sg.Column([[table]], expand_x=True, expand_y=True, pad=(10, 10))
+            ],
+            [sg.Frame('Status', status_bar, relief=sg.RELIEF_SUNKEN, pad=(10, 10))]
         ]
         
         return layout
@@ -1092,9 +1367,6 @@ class UIBuilder:
         """Create the main window"""
         sg.theme('DarkGrey13')
         
-        # Define reasonable initial window size
-        initial_size = (1024, 768)  # Standard laptop size
-        
         window = sg.Window(
             'Cable Database Interface',
             self.create_main_layout(),
@@ -1102,344 +1374,167 @@ class UIBuilder:
             finalize=True,
             return_keyboard_events=True,
             use_default_focus=False,
-            enable_close_attempted_event=True,
-            size=initial_size,
-            location=(50, 50),  # Position window away from corner
-            element_padding=(3, 3)
+            enable_close_attempted_event=True
         )
         
+        # Bind keyboard shortcuts
+        window.bind('<Control-o>', 'Open::open_key')
+        window.bind('<Control-s>', 'Save')
+        window.bind('<Control-,>', 'Settings')
+        window.bind('<Alt-F4>', 'Exit')
+        window.bind('<Control-f>', 'Clear Filters')
+        window.bind('<Control-g>', 'Clear Groups')
+        window.bind('<Control-d>', 'Default')
+        window.bind('<Control-k>', 'Dark')
+        window.bind('<Control-l>', 'Light')
+        window.bind('<F1>', 'About')
+        
         return window
-
-    def save_window_state(self):
-        """Save window position and size"""
-        if hasattr(self, 'window') and self.window:
-            self.settings.settings['window_size'] = self.window.size
-            self.settings.settings['window_location'] = self.window.current_location()
-            self.settings.save_settings()
-
-    def restore_window_state(self):
-        """Restore previous window position and size"""
-        size = self.settings.settings.get('window_size')
-        location = self.settings.settings.get('window_location')
-        
-        if size:
-            self.window.size = size
-        if location:
-            self.window.move(*location)
-
-class EventHandler:
-    """Handles all window events"""
-    def __init__(self, window, data_manager):
-        self.window = window
-        self.data_manager = data_manager
-        self.current_group_field = None
-
-    def update_table(self):
-        """Update the table display with current data and formatting"""
-        try:
-            # Use filtered_df if it exists, otherwise use main df
-            df_to_display = (self.data_manager.filtered_df 
-                           if self.data_manager.filtered_df is not None 
-                           else self.data_manager.df)
-            
-            if df_to_display is not None and not df_to_display.empty:
-                # Create alternating row colors
-                row_colors = [(i, '#181818' if i % 2 == 0 else '#232323') 
-                            for i in range(len(df_to_display))]
-                
-                # Update table with data and formatting
-                self.window['-TABLE-'].update(
-                    values=df_to_display.values.tolist(),
-                    row_colors=row_colors,
-                    num_rows=min(25, len(df_to_display))
-                )
-                self.window['-RECORD-COUNT-'].update(f'Records: {len(df_to_display)}')
-                
-                # Force table refresh
-                self.window.refresh()
-            else:
-                # Clear table if no data
-                self.window['-TABLE-'].update(values=[])
-                self.window['-RECORD-COUNT-'].update('Records: 0')
-            
-        except Exception as e:
-            print(f"Error updating table: {str(e)}")
-            traceback.print_exc()
-
-    def handle_open_event(self, event, values):
-        """Handle file open event"""
-        try:
-            if self.data_manager.load_file(values['-FILE-']):
-                self.update_table()  # Update table after loading
-                self.window['-STATUS-TEXT-'].update('File loaded successfully')
-            else:
-                self.window['-STATUS-TEXT-'].update('Error loading file')
-        except Exception as e:
-            print(f"Error in handle_open_event: {str(e)}")
-            self.window['-STATUS-TEXT-'].update(f'Error: {str(e)}')
-
-    def handle_event(self, event, values):
-        """Handle window events"""
-        try:
-            print(f"Handling event: {event}")  # Debug print
-            
-            # Handle table clicks
-            if isinstance(event, tuple) and event[0] == '-TABLE-':
-                if event[1] == '+CLICKED+':
-                    row, col = event[2]
-                    print(f"Table cell clicked: row={row}, col={col}")
-                    return True
-            
-            # Handle string-based events
-            if event == '-APPLY-FILTER-':
-                print("Applying filter...")
-                return self.handle_filter_event(values)
-            elif event == 'Clear Filter':
-                print("Clearing filter...")
-                return self.handle_clear_filter_event()
-            elif event == '-APPLY-SORT-':
-                print("Applying sort...")
-                return self.handle_sort_event(values)
-            
-            return True
-            
-        except Exception as e:
-            print(f"Error handling event: {str(e)}")
-            traceback.print_exc()
-            return True
-
-    def handle_filter_event(self, values):
-        """Handle filter application"""
-        try:
-            print("Starting filter application...")
-            
-            filters = {
-                'NUMBER': (values.get('-NUM-START-', ''), values.get('-NUM-END-', '')),
-                'DWG': values.get('-DWG-', '').strip(),
-                'ORIGIN': values.get('-ORIGIN-', '').strip(),
-                'DEST': values.get('-DEST-', '').strip(),
-                'Wire Type': values.get('-WIRE-TYPE-', '').strip(),
-                'ProjectID': values.get('-PROJECT-', '').strip()
-            }
-            
-            # Remove empty filters
-            filters = {k: v for k, v in filters.items() if v and (isinstance(v, tuple) or v.strip())}
-            
-            use_fuzzy = values.get('-FUZZY-', False)
-            print(f"Applying filters: {filters}, fuzzy: {use_fuzzy}")
-            
-            if self.data_manager.apply_filters(filters, use_fuzzy):
-                self.update_table()
-                print("Filters applied successfully")
-            else:
-                print("Failed to apply filters")
-            
-            return True
-            
-        except Exception as e:
-            print(f"Error in filter handling: {str(e)}")
-            traceback.print_exc()
-            return True
-
-    def handle_sort_event(self, values):
-        """Handle sort application"""
-        try:
-            sort_col = values.get('Sort by:', '')
-            ascending = values.get('-ASCENDING-', True)
-            
-            print(f"Sorting by {sort_col} {'ascending' if ascending else 'descending'}")
-            
-            if sort_col:
-                if self.data_manager.sort_data(sort_col, ascending):
-                    self.update_table()
-                    print("Sort applied successfully")
-                else:
-                    print("Failed to apply sort")
-            return True
-            
-        except Exception as e:
-            print(f"Error in sort handling: {str(e)}")
-            traceback.print_exc()
-            return True
-
-    def handle_reset_group_event(self):
-        """Handle reset group event"""
-        try:
-            self.data_manager.reset_grouping()
-            self.update_table()
-            return True
-            
-        except Exception as e:
-            print(f"Error in reset group handling: {str(e)}")
-            traceback.print_exc()
-            return True
-
-    def handle_group_event(self, values):
-        """Handle grouping event"""
-        try:
-            group_by = values.get('-GROUP-BY-')
-            if not group_by or self.data_manager.df is None:
-                return
-                
-            print(f"Grouping by: {group_by}")
-            self.data_manager.group_by_field(group_by)
-            self.update_table()
-            return True
-            
-        except Exception as e:
-            print(f"Error handling group event: {str(e)}")
-            traceback.print_exc()
-            return True
-
-    def handle_settings_event(self):
-        """Handle settings dialog"""
-        layout = [
-            [sg.Text('Default File Path:')],
-            [sg.Input(self.data_manager.settings.settings.get('default_file_path', ''), 
-                     key='-DEFAULT-PATH-'),
-             sg.FileBrowse(file_types=(("Excel Files", "*.xls*"),))],
-            [sg.Checkbox('Auto-load default file on startup', 
-                        default=self.data_manager.settings.settings.get('auto_load_default', True),
-                        key='-AUTO-LOAD-')],
-            [sg.Text('Theme:')],
-            [sg.Radio('Dark', 'THEME', default=True, key='-DARK-THEME-'),
-             sg.Radio('Light', 'THEME', key='-LIGHT-THEME-')],
-            [sg.Button('Save'), sg.Button('Cancel')]
-        ]
-        
-        settings_window = sg.Window('Settings', layout, modal=True, finalize=True)
-        
-        while True:
-            event, values = settings_window.read()
-            
-            if event in (None, 'Cancel'):
-                break
-                
-            if event == 'Save':
-                # Update settings
-                self.data_manager.settings.settings.update({
-                    'default_file_path': values['-DEFAULT-PATH-'],
-                    'auto_load_default': values['-AUTO-LOAD-'],
-                    'theme': 'DARK' if values['-DARK-THEME-'] else 'LIGHT'
-                })
-                
-                # Save settings
-                self.data_manager.settings.save_settings()
-                
-                # Apply theme if changed
-                current_theme = 'DARK' if values['-DARK-THEME-'] else 'LIGHT'
-                ThemeManager.apply_theme(self.window, current_theme)
-                
-                break
-        
-        settings_window.close()
-
-    def handle_save_event(self):
-        """Handle save event"""
-        try:
-            if self.data_manager.df is None:
-                sg.popup_error('No data to save!')
-                return
-                
-            filename = sg.popup_get_file('Save As', save_as=True, 
-                                       file_types=(("Excel Files", "*.xlsx"),))
-            if filename:
-                if not filename.endswith('.xlsx'):
-                    filename += '.xlsx'
-                self.data_manager.df.to_excel(filename, index=False)
-                sg.popup('File saved successfully!')
-        except Exception as e:
-            sg.popup_error(f'Error saving file: {str(e)}')
-
-    def handle_about_event(self):
-        """Handle about dialog"""
-        about_text = """Cable Database Application v1.0
-        
-A tool for managing and analyzing cable database information.
-
-Features:
-- Excel file import/export
-- Advanced filtering and sorting
-- Grouping capabilities
-- Dark/Light themes
-- Fuzzy search
-"""
-        sg.popup(about_text, title='About')
-
-    def handle_clear_filter_event(self):
-        """Handle clearing of filters"""
-        try:
-            # Reset the data to original state
-            if hasattr(self.data_manager, 'original_df'):
-                self.data_manager.df = self.data_manager.original_df.copy()
-                self.update_table()
-                
-                # Clear the filter input fields
-                for key in ['-NUM-START-', '-NUM-END-', '-DWG-', '-ORIGIN-', 
-                          '-DEST-', '-WIRE-TYPE-', '-PROJECT-']:
-                    self.window[key].update('')
-                
-                print("Filters cleared")
-            return True
-            
-        except Exception as e:
-            print(f"Error clearing filters: {str(e)}")
-            traceback.print_exc()
-            return True
 
 class CableDatabaseApp:
     def __init__(self):
         print("Application starting...")
+        print("Starting initialization...")
         self.settings = Settings()
         self.data_manager = DataManager()
         self.ui_builder = UIBuilder()
+        print("Creating window...")
         self.window = self.ui_builder.create_window()
         self.event_handler = EventHandler(self.window, self.data_manager)
-        # Note: Don't load file here
+        print("Initialization complete")
+
+    def update_status(self, message: str) -> None:
+        """Update status bar message"""
+        try:
+            if hasattr(self, 'window') and self.window is not None:
+                self.window['-STATUS-TEXT-'].update(message)
+        except Exception as e:
+            print(f"Error updating status: {str(e)}")
 
     def run(self):
         """Main application loop"""
         try:
-            # Load file once at start of run
+            # Load initial file if configured
             self.load_initial_file()
             
             while True:
-                event, values = self.window.read(timeout=100)
+                event, values = self.window.read()
+                print(f"Event received: {event}")
                 
-                if event in (None, 'Exit', sg.WIN_CLOSED, sg.WINDOW_CLOSE_ATTEMPTED_EVENT):
+                if event in (None, 'Exit'):
+                    print("Exit condition met")
                     break
-                
-                if event != sg.TIMEOUT_KEY:
-                    if not self.event_handler.handle_event(event, values):
-                        break
                     
+                # Handle events
+                if not self.event_handler.handle_event(event, values):
+                    break
+                    
+            print("Closing window...")
             self.window.close()
+            print("App run completed")
             
         except Exception as e:
             print(f"Critical error in run: {str(e)}")
             traceback.print_exc()
-            if self.window:
+            if hasattr(self, 'window') and self.window is not None:
                 self.window.close()
 
-    def load_initial_file(self):
+    def load_initial_file(self) -> None:
         """Load initial file if configured"""
         try:
             default_file = self.settings.settings.get('default_file_path', '')
             if default_file and os.path.exists(default_file):
-                print(f"Loading default file: {default_file}")
-                
                 if self.data_manager.load_file(default_file):
-                    if hasattr(self.event_handler, 'update_table'):
-                        self.event_handler.update_table()
-                        print("File loaded and table updated")
+                    self.update_status('File loaded successfully')
+                    self.event_handler.update_table()
                 else:
-                    print("Error loading default file")
                     self.update_status('Error loading default file')
-                    
+            else:
+                self.update_status('No default file loaded')
         except Exception as e:
             print(f"Error in load_initial_file: {str(e)}")
             self.update_status(f'Error: {str(e)}')
-            traceback.print_exc()
+
+    def show_loading_screen(self):
+        """Create a loading screen with debug output"""
+        # Create debug output window with transparency
+        debug_layout = [
+            [sg.Multiline(size=(60, 20), key='-DEBUG-LOG-', autoscroll=True, 
+                         background_color='#1a1a1a', text_color='#00ff00',
+                         reroute_stdout=True, reroute_stderr=True, 
+                         write_only=True, expand_x=True, expand_y=True)]
+        ]
+        
+        # Create loading animation layout
+        loading_layout = [
+            [sg.Text('Loading Cable Database...', font=('Any', 16, 'bold'), 
+                    text_color='white', background_color='#1a1a1a')],
+            [sg.ProgressBar(100, orientation='h', size=(30, 20), key='-PROGRESS-',
+                           bar_color=('green', '#1a1a1a'))],
+            [sg.Text('Initializing...', key='-LOAD-STATUS-', font=('Any', 10),
+                    text_color='white', background_color='#1a1a1a')]
+        ]
+        
+        # Combined layout with both elements
+        layout = [
+            [sg.Column(loading_layout, background_color='#1a1a1a', 
+                      element_justification='center', pad=(20, 20))],
+            [sg.Column(debug_layout, background_color='#1a1a1a',
+                      pad=(20, 20), expand_x=True, expand_y=True)]
+        ]
+        
+        # Create window with transparency
+        window = sg.Window('Loading', layout,
+                          no_titlebar=True,
+                          alpha_channel=0.9,
+                          background_color='#1a1a1a',
+                          finalize=True,
+                          keep_on_top=True)
+        
+        return window
+
+    def initialize_with_loading(self):
+        """Initialize application with loading screen"""
+        loading_window = self.show_loading_screen()
+        
+        try:
+            # Update progress bar in steps
+            for i in range(0, 101, 10):
+                loading_window['-PROGRESS-'].update(i)
+                if i == 0:
+                    loading_window['-LOAD-STATUS-'].update('Loading settings...')
+                    self.settings = Settings()
+                    
+                elif i == 20:
+                    loading_window['-LOAD-STATUS-'].update('Initializing data manager...')
+                    self.data_manager = DataManager()
+                    
+                elif i == 40:
+                    loading_window['-LOAD-STATUS-'].update('Building user interface...')
+                    self.ui_builder = UIBuilder()
+                    
+                elif i == 60:
+                    loading_window['-LOAD-STATUS-'].update('Creating main window...')
+                    self.window = self.ui_builder.create_window()
+                    
+                elif i == 80:
+                    loading_window['-LOAD-STATUS-'].update('Setting up event handlers...')
+                    self.event_handler = EventHandler(self.window, self.data_manager)
+                    
+                elif i == 100:
+                    loading_window['-LOAD-STATUS-'].update('Ready!')
+                    
+                time.sleep(0.1)  # Add small delay for visual effect
+                loading_window.refresh()
+                
+            # Close loading window after short delay
+            time.sleep(0.5)
+            loading_window.close()
+            
+        except Exception as e:
+            print(f"Error during initialization: {str(e)}")
+            loading_window.close()
+            raise
 
 if __name__ == "__main__":
     print("Application starting...")
