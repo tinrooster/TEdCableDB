@@ -10,6 +10,7 @@ from thefuzz import fuzz
 import re
 import time
 import pandas as pd
+import tkinter.ttk as ttk
 
 # Constants
 DEFAULT_SETTINGS = {
@@ -851,50 +852,33 @@ class DataManager:
         return result
 
 class ThemeManager:
-    """Manage application themes and colors"""
+    """Manage table colors"""
     
-    THEMES = {
-        'DARK': {
-            'table_colors': {
-                'even_row': '#181818',
-                'odd_row': '#232323',
-                'header': '#303030',
-                'text': 'white',
-                'selected': ('white', 'blue')
-            }
-        },
-        'LIGHT': {
-            'table_colors': {
-                'even_row': '#f0f0f0',
-                'odd_row': '#ffffff',
-                'header': '#e0e0e0',
-                'text': 'black',
-                'selected': ('white', 'blue')
-            }
-        }
-    }
-
     @classmethod
-    def apply_theme(cls, window, theme_key='DARK'):
-        """Apply theme with working table colors"""
-        theme = cls.THEMES[theme_key]
-        colors = theme['table_colors']
+    def apply_theme(cls, window):
+        """Apply default table colors"""
+        colors = {
+            'even_row': '#181818',
+            'odd_row': '#232323',
+            'header': '#303030',
+            'text': 'white',
+            'selected': ('white', '#0078D7')
+        }
         
-        # Create row colors list
+        # Get table element
+        table = window['-TABLE-']
+        
+        # Create row colors list for current data
+        num_rows = len(table.Values) if table.Values else 1000
         row_colors = []
-        for i in range(1000):
+        for i in range(num_rows):
             color = colors['even_row'] if i % 2 == 0 else colors['odd_row']
             row_colors.append((i, color))
         
-        # Update table colors
-        table = window['-TABLE-']
+        # Update table with only supported parameters
         table.update(
-            row_colors=row_colors,
-            background_color=colors['even_row'],
-            text_color=colors['text'],
-            header_background_color=colors['header'],
-            header_text_color=colors['text'],
-            selected_row_colors=colors['selected']
+            values=table.Values,  # Preserve current values
+            row_colors=row_colors
         )
 
 class UIBuilder:
@@ -949,7 +933,6 @@ class UIBuilder:
         # Define menu
         menu_def = [
             ['File', ['Open::open_key', 'Save', 'Settings', 'Exit']],
-            ['View', ['Dark', 'Light']],
             ['Help', ['About']]
         ]
         
@@ -1117,10 +1100,6 @@ class EventHandler:
                     self.handle_settings_event()
                 elif event == 'About':
                     self.handle_about_event()
-                elif event == 'Dark':
-                    ThemeManager.apply_theme(self.window, 'DARK')
-                elif event == 'Light':
-                    ThemeManager.apply_theme(self.window, 'LIGHT')
             
             return True
                 
@@ -1130,6 +1109,81 @@ class EventHandler:
             return True
 
     # ... rest of EventHandler methods ...
+
+    def handle_settings_event(self):
+        """Handle settings dialog"""
+        layout = [
+            [sg.Text('Default File Path:')],
+            [sg.Input(self.data_manager.settings.settings.get('default_file_path', ''), 
+                     key='-DEFAULT-PATH-'),
+             sg.FileBrowse(file_types=(("Excel Files", "*.xls*"),))],
+            [sg.Checkbox('Auto-load default file on startup', 
+                        default=self.data_manager.settings.settings.get('auto_load_default', True),
+                        key='-AUTO-LOAD-')],
+            [sg.Text('Theme:')],
+            [sg.Radio('Dark', 'THEME', default=True, key='-DARK-THEME-'),
+             sg.Radio('Light', 'THEME', key='-LIGHT-THEME-')],
+            [sg.Button('Save'), sg.Button('Cancel')]
+        ]
+        
+        settings_window = sg.Window('Settings', layout, modal=True, finalize=True)
+        
+        while True:
+            event, values = settings_window.read()
+            
+            if event in (None, 'Cancel'):
+                break
+                
+            if event == 'Save':
+                # Update settings
+                self.data_manager.settings.settings.update({
+                    'default_file_path': values['-DEFAULT-PATH-'],
+                    'auto_load_default': values['-AUTO-LOAD-'],
+                    'theme': 'DARK' if values['-DARK-THEME-'] else 'LIGHT'
+                })
+                
+                # Save settings
+                self.data_manager.settings.save_settings()
+                
+                # Apply theme if changed
+                current_theme = 'DARK' if values['-DARK-THEME-'] else 'LIGHT'
+                ThemeManager.apply_theme(self.window, current_theme)
+                
+                break
+        
+        settings_window.close()
+
+    def handle_save_event(self):
+        """Handle save event"""
+        try:
+            if self.data_manager.df is None:
+                sg.popup_error('No data to save!')
+                return
+                
+            filename = sg.popup_get_file('Save As', save_as=True, 
+                                       file_types=(("Excel Files", "*.xlsx"),))
+            if filename:
+                if not filename.endswith('.xlsx'):
+                    filename += '.xlsx'
+                self.data_manager.df.to_excel(filename, index=False)
+                sg.popup('File saved successfully!')
+        except Exception as e:
+            sg.popup_error(f'Error saving file: {str(e)}')
+
+    def handle_about_event(self):
+        """Handle about dialog"""
+        about_text = """Cable Database Application v1.0
+        
+A tool for managing and analyzing cable database information.
+
+Features:
+- Excel file import/export
+- Advanced filtering and sorting
+- Grouping capabilities
+- Dark/Light themes
+- Fuzzy search
+"""
+        sg.popup(about_text, title='About')
 
 class CableDatabaseApp:
     def __init__(self):
@@ -1158,16 +1212,18 @@ class CableDatabaseApp:
             self.load_initial_file()
             
             while True:
-                event, values = self.window.read()
-                print(f"Event received: {event}")
+                event, values = self.window.read(timeout=100)  # Keep timeout for responsiveness
                 
-                if event in (None, 'Exit'):
-                    print("Exit condition met")
-                    break
-                    
-                # Handle events
-                if not self.event_handler.handle_event(event, values):
-                    break
+                # Handle window close events immediately
+                if event in (None, 'Exit', sg.WIN_CLOSED, sg.WINDOW_CLOSE_ATTEMPTED_EVENT):
+                    print("Window close event detected")
+                    break  # Exit immediately without confirmation
+                
+                # Handle other events
+                if event != sg.TIMEOUT_KEY:  # Skip timeout events
+                    print(f"Event received: {event}")
+                    if not self.event_handler.handle_event(event, values):
+                        break
                     
             print("Closing window...")
             self.window.close()
