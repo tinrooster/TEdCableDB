@@ -1153,6 +1153,19 @@ class TableConfigurationDialog:
 class UIBuilder:
     def __init__(self):
         self.window_title = "TE/d Cable DB v1.0"
+        # Add table configuration
+        self.table_config = {
+            'columns': ['NUMBER', 'DWG', 'ORIGIN', 'DEST', 'Wire Type', 'Length', 'Project'],
+            'column_widths': {
+                'NUMBER': 10,
+                'DWG': 15,
+                'ORIGIN': 20,
+                'DEST': 20,
+                'Wire Type': 15,
+                'Length': 10,
+                'Project': 15
+            }
+        }
         self.menu_def = [
             ['File', ['Open::open_key', 'Save::save_key', 'Save As::saveas_key', '---', 'Exit']],
             ['Help', ['Quick Guide', 'Shortcuts', 'About']]
@@ -1368,24 +1381,36 @@ class UIBuilder:
 class FileManager:
     def __init__(self):
         self.config_file = "config.json"
+        self.default_config = {
+            "last_file": None,
+            "save_directory": None,
+            "settings": {
+                "window_size": [800, 600],
+                "window_location": None,
+                "last_directory": None
+            }
+        }
         self.config = self.load_config()
         
     def load_config(self):
-        """Load configuration from JSON file"""
+        """Load configuration from JSON file or create default"""
         try:
             if os.path.exists(self.config_file):
                 with open(self.config_file, 'r') as f:
                     return json.load(f)
-            return {"last_file": None, "save_directory": None}
+            else:
+                # Create default config file
+                self.save_config(self.default_config)
+                return self.default_config
         except Exception as e:
             print(f"Error loading config: {e}")
-            return {"last_file": None, "save_directory": None}
+            return self.default_config
             
-    def save_config(self):
+    def save_config(self, config=None):
         """Save configuration to JSON file"""
         try:
             with open(self.config_file, 'w') as f:
-                json.dump(self.config, f)
+                json.dump(config or self.config, f, indent=4)
         except Exception as e:
             print(f"Error saving config: {e}")
 

@@ -1,0 +1,45 @@
+{
+    "last_file_path": "",
+    "default_file_path": "",
+    "auto_load_default": true,
+    "last_directory": "",
+    "table_config": {
+        "columns": [
+            "NUMBER",
+            "DWG",
+            "ORIGIN",
+            "DEST",
+            "Alternate Dwg",
+            "Wire Type",
+            "Length",
+            "Note",
+            "Project ID"
+        ],
+        "column_widths": {
+            "NUMBER": 10,
+            "DWG": 15,
+            "ORIGIN": 60,
+            "DEST": 60,
+            "Alternate Dwg": 15,
+            "Wire Type": 15,
+            "Length": 10,
+            "Note": 20,
+            "Project ID": 10
+        },
+        "required_columns": [
+            "NUMBER",
+            "DWG",
+            "ORIGIN",
+            "DEST"
+        ],
+        "filter_keys": {
+            "NUMBER": "-NUM-START-",
+            "DWG": "-DWG-",
+            "ORIGIN": "-ORIGIN-",
+            "DEST": "-DEST-",
+            "Wire Type": "-WIRE-TYPE-",
+            "Length": "-LENGTH-",
+            "Project ID": "-PROJECT-"
+        }
+    }
+}

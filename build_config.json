@@ -1,0 +1,57 @@
+{
+    "version": "auto-py-to-exe-configuration_v1",
+    "pyinstallerOptions": [
+        {
+            "optionDest": "noconfirm",
+            "value": true
+        },
+        {
+            "optionDest": "filenames",
+            "value": "TEdCableDB.py"
+        },
+        {
+            "optionDest": "onefile",
+            "value": true
+        },
+        {
+            "optionDest": "console",
+            "value": true
+        },
+        {
+            "optionDest": "icon_file",
+            "value": "app_icon.ico"
+        },
+        {
+            "optionDest": "name",
+            "value": "TEd Cable DB"
+        },
+        {
+            "optionDest": "clean_build",
+            "value": true
+        },
+        {
+            "optionDest": "strip",
+            "value": false
+        },
+        {
+            "optionDest": "noupx",
+            "value": false
+        },
+        {
+            "optionDest": "disable_windowed_traceback",
+            "value": false
+        },
+        {
+            "optionDest": "uac_admin",
+            "value": false
+        },
+        {
+            "optionDest": "uac_uiaccess",
+            "value": false
+        }
+    ],
+    "nonPyinstallerOptions": {
+        "increaseRecursionLimit": true,
+        "manualArguments": ""
+    }
+} 
