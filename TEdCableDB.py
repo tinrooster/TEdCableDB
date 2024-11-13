@@ -579,20 +579,70 @@ class EventHandler:
             self.window['-STATUS-'].update(f'Error: {str(e)}')
             return True  # Keep window open even if there's an error
 
-    def handle_help_event(self):
-        """Show help dialog"""
-        help_text = """
-        Keyboard Shortcuts:
-        Ctrl+O - Open file
-        Ctrl+S - Save file
-        Ctrl+, - Open settings
-        F1     - Show help
+    def create_help_window(self, help_type):
+        """Create help window based on type"""
+        if help_type == "Quick Guide":
+            layout = [
+                [sg.Text("Quick Guide", font=("Helvetica", 16))],
+                [sg.Text("• Use filters to search through cable data")],
+                [sg.Text("• Sort columns by clicking column headers")],
+                [sg.Text("• Group data using the Group By function")],
+                [sg.Text("• Right-click for additional options")],
+                [sg.Text("• Use Fuzzy Search for approximate matches")],
+                [sg.Button("OK", key="-HELP-OK-")]
+            ]
+        elif help_type == "Shortcuts":
+            layout = [
+                [sg.Text("Keyboard Shortcuts", font=("Helvetica", 16))],
+                [sg.Text("Ctrl+O: Open file")],
+                [sg.Text("Ctrl+S: Save")],
+                [sg.Text("Ctrl+Shift+S: Save As")],
+                [sg.Text("Ctrl+F: Focus on filter")],
+                [sg.Text("Ctrl+C: Copy selected rows")],
+                [sg.Button("OK", key="-HELP-OK-")]
+            ]
+        elif help_type == "About":
+            layout = [
+                [sg.Text("TEd Cable DB", font=("Helvetica", 16))],
+                [sg.Text("Version 1.0 - KGO Engineering", font=("Helvetica", 10))],
+                [sg.Text("_" * 50)],
+                [sg.Text("Developed by:", font=("Helvetica", 10, "bold"))],
+                [sg.Text("AC Hay")],
+                [sg.Text("_" * 50)],
+                [sg.Text("Special Thanks:", font=("Helvetica", 10, "bold"))],
+                [sg.Text("Anthropic Claude AI Assistant")],
+                [sg.Text("_" * 50)],
+                [sg.Text("KGO Engineering Department:", font=("Helvetica", 10, "bold"))],
+                [sg.Text("Dave Fortin\nDavid Figura\nMarcus Saxton")],
+                [sg.Text("Jack Fraiser\nRosendo Pena")],
+                [sg.Text("and especially")],
+                [sg.Text("Felice Gondolfo", font=("Helvetica", 10, "bold"))],
+                [sg.Text("_" * 50)],
+                [sg.Button("OK", key="-HELP-OK-")]
+            ]
+        
+        return sg.Window(
+            help_type,
+            layout,
+            modal=True,
+            finalize=True,
+            element_justification='center',
+            font=("Helvetica", 10),
+            keep_on_top=True
+        )
 
-        Settings can be accessed through:
-        - File menu -> Settings
-        - Keyboard shortcut (Ctrl+,)
-        """
-        sg.popup_scrolled(help_text, title='Help', size=(50, 20))
+    def handle_help_event(self, event):
+        """Handle help menu events"""
+        try:
+            help_window = self.create_help_window(event)
+            while True:
+                help_event, _ = help_window.read()
+                if help_event in (sg.WIN_CLOSED, '-HELP-OK-'):
+                    break
+            help_window.close()
+        except Exception as e:
+            print(f"Error in handle_help_event: {e}")
+            sg.popup_error(f'Error displaying help: {str(e)}')
 
     def handle_settings_event(self):
         """Handle settings dialog"""
@@ -935,15 +985,6 @@ class EventHandler:
             print(f"Error in handle_save_event: {e}")
             sg.popup_error(f'Error saving file: {str(e)}')
 
-    def handle_help_event(self, event):
-        """Handle help menu events"""
-        help_window = self.window.UIBuilder.create_help_window(event)
-        while True:
-            help_event, _ = help_window.read()
-            if help_event in (sg.WIN_CLOSED, 'OK'):
-                break
-        help_window.close()
-
 class TableConfigurationDialog:
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -1110,10 +1151,8 @@ class TableConfigurationDialog:
             self.handle_events(window, event, values)
 
 class UIBuilder:
-    def __init__(self, settings):
-        self.settings = settings
-        self.table_config = settings.get_table_config()
-        self.window_title = "TE/d Cable DB"
+    def __init__(self):
+        self.window_title = "TE/d Cable DB v1.0"
         self.menu_def = [
             ['File', ['Open::open_key', 'Save::save_key', 'Save As::saveas_key', '---', 'Exit']],
             ['Help', ['Quick Guide', 'Shortcuts', 'About']]
@@ -1326,45 +1365,6 @@ class UIBuilder:
         ]
         return layout
 
-    def create_help_window(self, help_type):
-        """Create help window based on type"""
-        if help_type == "Quick Guide":
-            layout = [
-                [sg.Text("Quick Guide", font=("Helvetica", 16))],
-                [sg.Text("• Use filters to search through cable data")],
-                [sg.Text("• Sort columns by clicking column headers")],
-                [sg.Text("• Group data using the Group By function")],
-                [sg.Text("• Right-click for additional options")],
-                [sg.Text("• Use Fuzzy Search for approximate matches")],
-                [sg.Button("OK")]
-            ]
-        elif help_type == "Shortcuts":
-            layout = [
-                [sg.Text("Keyboard Shortcuts", font=("Helvetica", 16))],
-                [sg.Text("Ctrl+O: Open file")],
-                [sg.Text("Ctrl+S: Save")],
-                [sg.Text("Ctrl+Shift+S: Save As")],
-                [sg.Text("Ctrl+F: Focus on filter")],
-                [sg.Text("Ctrl+C: Copy selected rows")],
-                [sg.Button("OK")]
-            ]
-        elif help_type == "About":
-            layout = [
-                [sg.Text("TE/d Cable Database", font=("Helvetica", 16))],
-                [sg.Text("Version 1.0")],
-                [sg.Text("Developed for KGO Engineering Department")],
-                [sg.Text("\nDeveloped by:")],
-                [sg.Text("AC Hay")],
-                [sg.Text("\nSpecial Thanks to:")],
-                [sg.Text("Anthropic Claude AI")],
-                [sg.Text("\nKGO Engineering Department:")],
-                [sg.Text("Dave Fortin\nDavid Figura\nMarcus Saxton\nJack Fraiser\n" +
-                        "Rosendo Pena\nFelice Gondolfo")],
-                [sg.Button("OK")]
-            ]
-        
-        return sg.Window(help_type, layout, modal=True, finalize=True)
-
 class FileManager:
     def __init__(self):
         self.config_file = "config.json"
@@ -1394,7 +1394,7 @@ class CableDatabaseApp:
         print("Application starting...")
         self.settings = Settings()
         self.data_manager = DataManager(self.settings)
-        self.ui_builder = UIBuilder(self.settings)
+        self.ui_builder = UIBuilder()
         self.window = self.ui_builder.create_window()
         self.event_handler = EventHandler(self.window, self.data_manager, self.settings)
         # Note: Don't load file here
