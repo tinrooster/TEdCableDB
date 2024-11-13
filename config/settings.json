@@ -1,10 +1,52 @@
 {
-    "default_db_path": "",
-    "last_directory": "C:/cursor_dev/EXCEL Source DB",
+    "last_file_path": "D:/code/Cable DB 3 _ test.xlsm",
+    "default_file_path": "C:/Users/Hay/Google Drive/CableDB Project FIles/XLS_cableDB_v1.xlsm",
     "auto_load_default": true,
+    "last_directory": "C:/cursor_dev/EXCEL Source DB",
+    "table_config": {
+        "columns": [
+            "NUMBER",
+            "DWG",
+            "ORIGIN",
+            "DEST",
+            "Alternate Dwg",
+            "Wire Type",
+            "Length",
+            "Note",
+            "Project ID"
+        ],
+        "column_widths": {
+            "NUMBER": 10,
+            "DWG": 10,
+            "ORIGIN": 60,
+            "DEST": 60,
+            "Alternate Dwg": 10,
+            "Wire Type": 15,
+            "Length": 10,
+            "Note": 20,
+            "Project ID": 10
+        },
+        "required_columns": [
+            "NUMBER",
+            "DWG",
+            "ORIGIN",
+            "DEST"
+        ],
+        "filter_keys": {
+            "NUMBER": "-NUM-START-",
+            "DWG": "-DWG-",
+            "ORIGIN": "-ORIGIN-",
+            "DEST": "-DEST-",
+            "Wire Type": "-WIRE-TYPE-",
+            "Length": "-LENGTH-",
+            "Project ID": "-PROJECT-"
+        },
+        "auto_size": true,
+        "remember_widths": true,
+        "rows_per_page": 30
+    },
+    "default_db_path": "",
     "theme": "DarkGrey13",
     "window_location": null,
-    "window_size": null,
-    "last_file_path": "D:/code/Cable DB 3 _ test.xlsm",
-    "default_file_path": "C:/Users/Hay/Google Drive/CableDB Project FIles/XLS_cableDB_v1.xlsm"
+    "window_size": null
 }

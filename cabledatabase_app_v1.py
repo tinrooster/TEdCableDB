@@ -291,6 +291,127 @@ class DataManager:
             return df_to_display.fillna('').values.tolist()
         return []
 
+    def handle_sort(self, sort_by: str, ascending: bool = True) -> bool:
+        """Handle sorting with proper column name mapping"""
+        try:
+            # Use filtered_df if it exists, otherwise use main df
+            working_df = self.get_current_data()
+            if working_df is None:
+                print("No data to sort")
+                return False
+
+            if sort_by not in working_df.columns:
+                print(f"Column '{sort_by}' not found in data")
+                return False
+
+            print(f"Sorting by {sort_by}...")
+            sorted_df = working_df.sort_values(by=sort_by, ascending=ascending)
+            
+            # Update the appropriate dataframe
+            if self.filtered_df is not None:
+                self.filtered_df = sorted_df
+            else:
+                self.df = sorted_df
+                
+            print(f"Sorted by {sort_by}")
+            return True
+
+        except Exception as e:
+            print(f"Error in sorting: {str(e)}")
+            traceback.print_exc()
+            return False
+
+    def apply_grouping(self, group_by: str) -> bool:
+        """Apply grouping while maintaining filtered state"""
+        working_df = self.get_current_data()
+        
+        if working_df is None or group_by not in working_df.columns:
+            print(f"Cannot group: invalid column {group_by}")
+            return False
+            
+        try:
+            print(f"Grouping by: {group_by}")
+            
+            # Create summary DataFrame
+            grouped = working_df.groupby(group_by, dropna=False)
+            summary = []
+            
+            for name, group in grouped:
+                row = {col: '' for col in working_df.columns}
+                row[group_by] = str(name) if pd.notna(name) else '(Empty)'
+                row['Count'] = len(group)
+                
+                # Keep first value for other columns
+                for col in working_df.columns:
+                    if col != group_by and col != 'Count':
+                        first_val = group[col].iloc[0] if not group[col].empty else ''
+                        row[col] = str(first_val) if pd.notna(first_val) else ''
+                
+                summary.append(row)
+            
+            # Convert summary to DataFrame
+            summary_df = pd.DataFrame(summary)
+            
+            # Update the appropriate dataframe
+            self.filtered_df = summary_df
+            self.current_group = group_by
+            
+            print(f"Grouped data has {len(summary_df)} rows")
+            return True
+            
+        except Exception as e:
+            print(f"Error in grouping: {str(e)}")
+            traceback.print_exc()
+            return False
+
+    def apply_filters(self, filters, search_mode='standard'):
+        """Apply filters to the data"""
+        try:
+            print(f"Applying filters: {filters}")
+            df = self.df.copy()
+            print(f"Initial data count: {len(df)}")
+            
+            for field, value in filters.items():
+                if field not in df.columns:
+                    print(f"Warning: Column '{field}' not found in DataFrame")
+                    continue
+                    
+                if field == 'NUMBER':
+                    if isinstance(value, tuple):
+                        start, end = value
+                        numeric_col = pd.to_numeric(df['NUMBER'], errors='coerce').astype('Int64')
+                        
+                        if start is not None:
+                            df = df[numeric_col >= start]
+                        if end is not None:
+                            df = df[numeric_col <= end]
+                else:
+                    if search_mode == 'exact':
+                        df = df[df[field].str.lower() == value.lower()]
+                    elif search_mode == 'fuzzy':
+                        # Fuzzy search implementation
+                        def fuzzy_match(text):
+                            if pd.isna(text) or pd.isna(value):
+                                return False
+                            return fuzz.partial_ratio(str(text).lower(), str(value).lower()) >= 75  # Adjust threshold as needed
+
+                        mask = df[field].apply(fuzzy_match)
+                        df = df[mask]
+                    else:  # standard
+                        df = df[df[field].str.contains(value, case=False, na=False)]
+                    print(f"After {field} filter: {len(df)} records")
+
+            self.base_filtered_df = df.copy()
+            self.filtered_df = df.copy()
+            self.current_filters = (filters, search_mode)
+            print(f"Final filtered count: {len(df)}")
+            
+        except Exception as e:
+            print(f"Error in apply_filters: {str(e)}")
+            traceback.print_exc()
+            return False
+        return True
+
 class ThemeManager:
     """Manage table colors"""
     
@@ -365,6 +486,14 @@ class EventHandler:
         try:
             print(f"Handling event: {event}")
 
+            # Handle right-click menu events
+            if event == 'Copy':
+                self.handle_copy_selection()
+                return True
+            elif event == 'Export Selection':
+                self.handle_export_selection()
+                return True
+
             # Handle table click events properly
             if isinstance(event, tuple) and event[0] == '-TABLE-':
                 if event[1] == '+CLICKED+':
@@ -407,6 +536,18 @@ class EventHandler:
                 return True
             elif event == '-SORT-BY-':
                 self.handle_sort_event(values)
+                return True
+
+            # Handle explicit sort button
+            if event == '-APPLY-SORT-':
+                sort_by = values['-SORT-BY-']
+                if sort_by:
+                    ascending = values['-SORT-ASC-']
+                    if self.data_manager.handle_sort(sort_by, ascending):
+                        self.update_table_data()
+                        self.window['-STATUS-'].update(f'Sorted by {sort_by} {"ascending" if ascending else "descending"}')
+                    else:
+                        self.window['-STATUS-'].update('Sort failed')
                 return True
 
             return True  # Keep window open for unhandled events
@@ -485,142 +626,40 @@ class EventHandler:
                     sg.popup_error('Invalid number range')
                     return
 
-            # Text field filters with fallback options
+            # Text field filters
             text_fields = {
                 'DWG': '-DWG-',
                 'ORIGIN': '-ORIGIN-',
                 'DEST': '-DEST-',
                 'Wire Type': '-WIRE-TYPE-',
                 'Length': '-LENGTH-',
-                'Project ID': '-PROJECT-'  # Primary field name
-            }
-            
-            # Field name variations to try
-            field_variations = {
-                'Project ID': ['ProjectID', 'Project_ID', 'Project'],  # Add any other variations here
+                'Project ID': '-PROJECT-'
             }
             
             for field, key in text_fields.items():
                 if values[key]:
-                    search_text = values[key].strip()
-                    if search_text:
-                        # Try primary field name first
-                        if field in self.data_manager.df.columns:
-                            filters[field] = search_text
-                        else:
-                            # Try variations if they exist
-                            variations = field_variations.get(field, [])
-                            for variant in variations:
-                                if variant in self.data_manager.df.columns:
-                                    filters[variant] = search_text
-                                    break
-                                else:
-                                    print(f"Warning: Neither {field} nor its variations found in columns")
+                    filters[field] = values[key].strip()
 
-            # Apply search mode
+            # Get search mode
             search_mode = 'standard'
             if values['-EXACT-']:
                 search_mode = 'exact'
             elif values['-FUZZY-SEARCH-']:
                 search_mode = 'fuzzy'
 
-            # Apply filters to data
-            self.apply_filters(filters, search_mode)
+            # Apply filters using data_manager
+            if self.data_manager.apply_filters(filters, search_mode):
+                self.update_table_data()
+                filtered_count = len(self.data_manager.filtered_df) if self.data_manager.filtered_df is not None else 0
+                total_count = len(self.data_manager.df)
+                self.window['-FILTER-STATUS-'].update(
+                    f'Filtered: {filtered_count:,} of {total_count:,} records'
+                )
             
         except Exception as e:
             print(f"Error in handle_filter_event: {str(e)}")
             traceback.print_exc()
             self.window['-STATUS-'].update(f'Error applying filters: {str(e)}')
-
-    def apply_filters(self, filters, search_mode='standard'):
-        """Apply filters to the data"""
-        try:
-            print(f"Applying filters: {filters}")
-            df = self.data_manager.df.copy()
-            print(f"Initial data count: {len(df)}")
-            
-            for field, value in filters.items():
-                if field not in df.columns:
-                    print(f"Warning: Column '{field}' not found in DataFrame. Available columns: {df.columns.tolist()}")
-                    continue
-                    
-                if field == 'NUMBER':
-                    if isinstance(value, tuple):
-                        start, end = value
-                        print(f"Applying number range filter: {start} to {end}")
-                        # Convert to integer, handling any non-numeric values
-                        numeric_col = pd.to_numeric(df['NUMBER'], errors='coerce').astype('Int64')
-                        
-                        if start is not None:
-                            try:
-                                start = int(float(start))
-                                df = df[numeric_col >= start]
-                            except ValueError:
-                                print(f"Invalid start number: {start}")
-                        
-                        if end is not None:
-                            try:
-                                end = int(float(end))
-                                df = df[numeric_col <= end]
-                            except ValueError:
-                                print(f"Invalid end number: {end}")
-                        
-                        print(f"After number filter: {len(df)} records")
-                else:
-                    if search_mode == 'exact':
-                        df = df[df[field].str.lower() == value.lower()]
-                    elif search_mode == 'fuzzy':
-                        df = df[df[field].str.contains(value, case=False, na=False)]
-                    else:  # standard
-                        df = df[df[field].str.contains(value, case=False, na=False)]
-                    print(f"After {field} filter: {len(df)} records")
-
-            self.data_manager.base_filtered_df = df.copy()
-            self.data_manager.filtered_df = df.copy()
-            self.data_manager.current_filters = (filters, search_mode)
-            print(f"Final filtered count: {len(df)}")
-            
-            self.update_table_data()
-            
-        except Exception as e:
-            print(f"Error in apply_filters: {str(e)}")
-            traceback.print_exc()
-            self.window['-STATUS-'].update(f'Error applying filters: {str(e)}')
-
-    def _apply_grouping(self, group_by):
-        """Internal method to apply grouping"""
-        try:
-            df = self.data_manager.filtered_df
-            grouped = df.groupby(group_by, dropna=False)
-            
-            summary = []
-            for name, group in grouped:
-                row = {col: '' for col in df.columns}
-                row[group_by] = str(name) if pd.notna(name) else '(Empty)'
-                row['Count'] = len(group)
-                
-                for col in df.columns:
-                    if col != group_by and col != 'Count':
-                        first_val = group[col].iloc[0] if not group[col].empty else ''
-                        row[col] = str(first_val) if pd.notna(first_val) else ''
-                
-                summary.append(row)
-                
-            self.data_manager.filtered_df = pd.DataFrame(summary)
-            return True
-        except Exception as e:
-            print(f"Error in _apply_grouping: {str(e)}")
-            return False
-
-    def _apply_sorting(self, sort_by, ascending=True):
-        """Internal method to apply sorting"""
-        try:
-            df = self.data_manager.filtered_df
-            self.data_manager.filtered_df = df.sort_values(by=sort_by, ascending=ascending)
-            return True
-        except Exception as e:
-            print(f"Error in _apply_sorting: {str(e)}")
-            return False
 
     def handle_clear_filters(self):
         """Clear all filters"""
@@ -641,9 +680,9 @@ class EventHandler:
             
             # Reapply any active grouping or sorting
             if self.data_manager.current_group:
-                self._apply_grouping(self.data_manager.current_group)
+                self.data_manager.apply_grouping(self.data_manager.current_group)
             if self.data_manager.current_sort:
-                self._apply_sorting(*self.data_manager.current_sort)
+                self.data_manager.handle_sort(*self.data_manager.current_sort)
             
             # Update table and status
             self.update_table_data()
@@ -774,6 +813,59 @@ class EventHandler:
             print(f"Error in sort operation: {str(e)}")
             traceback.print_exc()
             self.window['-STATUS-'].update(f'Error in sort operation: {str(e)}')
+
+    def handle_copy_selection(self):
+        """Copy selected rows to clipboard"""
+        try:
+            selected_rows = self.window['-TABLE-'].SelectedRows
+            if not selected_rows:
+                return
+            
+            df = self.data_manager.get_current_data()
+            if df is None:
+                return
+                
+            # Get selected data
+            selected_data = df.iloc[selected_rows]
+            
+            # Copy to clipboard
+            selected_data.to_clipboard(index=False)
+            self.window['-STATUS-'].update('Selection copied to clipboard')
+            
+        except Exception as e:
+            print(f"Error copying selection: {str(e)}")
+            self.window['-STATUS-'].update('Error copying selection')
+
+    def handle_export_selection(self):
+        """Export selected rows to Excel"""
+        try:
+            selected_rows = self.window['-TABLE-'].SelectedRows
+            if not selected_rows:
+                sg.popup_error('No rows selected')
+                return
+            
+            df = self.data_manager.get_current_data()
+            if df is None:
+                return
+                
+            # Get selected data
+            selected_data = df.iloc[selected_rows]
+            
+            # Get save path
+            save_path = sg.popup_get_file(
+                'Save As',
+                save_as=True,
+                file_types=(('Excel Files', '*.xlsx'),),
+                default_extension='xlsx'
+            )
+            
+            if save_path:
+                selected_data.to_excel(save_path, index=False)
+                self.window['-STATUS-'].update(f'Selection exported to {save_path}')
+                
+        except Exception as e:
+            print(f"Error exporting selection: {str(e)}")
+            self.window['-STATUS-'].update('Error exporting selection')
 
 class TableConfigurationDialog:
     def __init__(self, settings: Settings):
@@ -1040,7 +1132,8 @@ class UIBuilder:
                         sg.Text('Sort by:', size=(8, 1)),
                         sg.Combo(self.table_config['columns'], key='-SORT-BY-', size=(15, 1)),
                         sg.Radio('Ascending', 'SORT_DIR', default=True, key='-SORT-ASC-'),
-                        sg.Radio('Descending', 'SORT_DIR', key='-SORT-DESC-')
+                        sg.Radio('Descending', 'SORT_DIR', key='-SORT-DESC-'),
+                        sg.Button('Sort', key='-APPLY-SORT-')
                     ]
                 ]),
                 sg.VerticalSeparator(),
@@ -1116,7 +1209,8 @@ class UIBuilder:
                         sg.Text('Sort by:', size=(8, 1)),
                         sg.Combo(self.table_config['columns'], key='-SORT-BY-', size=(15, 1)),
                         sg.Radio('Ascending', 'SORT_DIR', default=True, key='-SORT-ASC-'),
-                        sg.Radio('Descending', 'SORT_DIR', key='-SORT-DESC-')
+                        sg.Radio('Descending', 'SORT_DIR', key='-SORT-DESC-'),
+                        sg.Button('Sort', key='-APPLY-SORT-')
                     ],
                     [
                         sg.Text('Group by:', size=(8, 1)),
@@ -1142,8 +1236,12 @@ class UIBuilder:
                 vertical_scroll_only=False,
                 enable_click_events=True,
                 right_click_menu=['&Right', ['Copy', 'Export Selection', '---', 'Settings']],
-                selected_row_colors=('white', 'blue'),
-                header_background_color=sg.theme_input_background_color(),
+                selected_row_colors=('white', '#0078D7'),  # Updated selection colors
+                background_color='#181818',  # Dark background
+                alternating_row_color='#232323',  # Slightly lighter for alternate rows
+                header_background_color='#303030',  # Darker header
+                text_color='white',  # White text
+                header_text_color='white',  # White header text
                 row_height=25
             )],
             
