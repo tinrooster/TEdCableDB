@@ -451,6 +451,11 @@ class EventHandler:
         self.table_config = settings.get_table_config()
         self.bind_keyboard_shortcuts()
         self.update_status_counts()
+        self.file_manager = FileManager()
+        
+        # Auto-load last file if exists
+        if self.file_manager.config["last_file"]:
+            self.load_file(self.file_manager.config["last_file"])
 
     def bind_keyboard_shortcuts(self):
         """Bind keyboard shortcuts"""
@@ -485,6 +490,22 @@ class EventHandler:
         """Handle window events"""
         try:
             print(f"Handling event: {event}")
+
+            # File menu events
+            if event in ('Open::open_key', 'o:79'):  # Ctrl+O
+                self.handle_open_event(event, values)
+                return True
+            elif event in ('Save::save_key', 's:83'):  # Ctrl+S
+                self.handle_save_event(event, values)
+                return True
+            elif event in ('Save As::saveas_key', 'S:83'):  # Ctrl+Shift+S
+                self.handle_save_event(event, values, save_as=True)
+                return True
+
+            # Help menu events
+            elif event in ('Quick Guide', 'Shortcuts', 'About'):
+                self.handle_help_event(event)
+                return True
 
             # Handle right-click menu events
             if event == 'Copy':
@@ -867,6 +888,62 @@ class EventHandler:
             print(f"Error exporting selection: {str(e)}")
             self.window['-STATUS-'].update('Error exporting selection')
 
+    def handle_open_event(self, event, values):
+        """Handle file open event"""
+        try:
+            file_path = sg.popup_get_file(
+                'Open File',
+                file_types=(('Excel Files', '*.xlsx'),),
+                initial_folder=self.file_manager.config.get("last_file")
+            )
+            
+            if file_path:
+                if self.load_file(file_path):
+                    self.file_manager.config["last_file"] = file_path
+                    self.file_manager.save_config()
+                    
+        except Exception as e:
+            print(f"Error in handle_open_event: {e}")
+            sg.popup_error(f'Error opening file: {str(e)}')
+
+    def handle_save_event(self, event, values, save_as=False):
+        """Handle file save event"""
+        try:
+            if save_as or not self.file_manager.config.get("save_directory"):
+                save_path = sg.popup_get_file(
+                    'Save As',
+                    save_as=True,
+                    file_types=(('Excel Files', '*.xlsx'),),
+                    initial_folder=self.file_manager.config.get("save_directory")
+                )
+                
+                if save_path:
+                    self.file_manager.config["save_directory"] = os.path.dirname(save_path)
+                    self.file_manager.save_config()
+            else:
+                save_path = os.path.join(
+                    self.file_manager.config["save_directory"],
+                    f"cable_db_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                )
+                
+            if save_path:
+                df = self.data_manager.get_current_data()
+                df.to_excel(save_path, index=False)
+                self.window['-STATUS-'].update(f'Saved to {save_path}')
+                
+        except Exception as e:
+            print(f"Error in handle_save_event: {e}")
+            sg.popup_error(f'Error saving file: {str(e)}')
+
+    def handle_help_event(self, event):
+        """Handle help menu events"""
+        help_window = self.window.UIBuilder.create_help_window(event)
+        while True:
+            help_event, _ = help_window.read()
+            if help_event in (sg.WIN_CLOSED, 'OK'):
+                break
+        help_window.close()
+
 class TableConfigurationDialog:
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -1036,28 +1113,16 @@ class UIBuilder:
     def __init__(self, settings):
         self.settings = settings
         self.table_config = settings.get_table_config()
-        # Define menu once
+        self.window_title = "TE/d Cable DB"
         self.menu_def = [
-            ['&File', [
-                '&Open::open_key',
-                '&Save::save_key',
-                '---',
-                'Se&ttings::settings_key',
-                '---',
-                'E&xit'
-            ]],
-            ['&Help', [
-                '&Quick Guide',
-                '&Keyboard Shortcuts',
-                '---',
-                '&About'
-            ]]
+            ['File', ['Open::open_key', 'Save::save_key', 'Save As::saveas_key', '---', 'Exit']],
+            ['Help', ['Quick Guide', 'Shortcuts', 'About']]
         ]
 
     def create_window(self):
         """Create the main application window"""
         layout = self.create_main_layout()
-        return sg.Window('Cable Database Interface',
+        return sg.Window(self.window_title,
                         layout,
                         resizable=True,
                         finalize=True,
@@ -1260,6 +1325,69 @@ class UIBuilder:
             ]
         ]
         return layout
+
+    def create_help_window(self, help_type):
+        """Create help window based on type"""
+        if help_type == "Quick Guide":
+            layout = [
+                [sg.Text("Quick Guide", font=("Helvetica", 16))],
+                [sg.Text("• Use filters to search through cable data")],
+                [sg.Text("• Sort columns by clicking column headers")],
+                [sg.Text("• Group data using the Group By function")],
+                [sg.Text("• Right-click for additional options")],
+                [sg.Text("• Use Fuzzy Search for approximate matches")],
+                [sg.Button("OK")]
+            ]
+        elif help_type == "Shortcuts":
+            layout = [
+                [sg.Text("Keyboard Shortcuts", font=("Helvetica", 16))],
+                [sg.Text("Ctrl+O: Open file")],
+                [sg.Text("Ctrl+S: Save")],
+                [sg.Text("Ctrl+Shift+S: Save As")],
+                [sg.Text("Ctrl+F: Focus on filter")],
+                [sg.Text("Ctrl+C: Copy selected rows")],
+                [sg.Button("OK")]
+            ]
+        elif help_type == "About":
+            layout = [
+                [sg.Text("TE/d Cable Database", font=("Helvetica", 16))],
+                [sg.Text("Version 1.0")],
+                [sg.Text("Developed for KGO Engineering Department")],
+                [sg.Text("\nDeveloped by:")],
+                [sg.Text("AC Hay")],
+                [sg.Text("\nSpecial Thanks to:")],
+                [sg.Text("Anthropic Claude AI")],
+                [sg.Text("\nKGO Engineering Department:")],
+                [sg.Text("Dave Fortin\nDavid Figura\nMarcus Saxton\nJack Fraiser\n" +
+                        "Rosendo Pena\nFelice Gondolfo")],
+                [sg.Button("OK")]
+            ]
+        
+        return sg.Window(help_type, layout, modal=True, finalize=True)
+
+class FileManager:
+    def __init__(self):
+        self.config_file = "config.json"
+        self.config = self.load_config()
+        
+    def load_config(self):
+        """Load configuration from JSON file"""
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r') as f:
+                    return json.load(f)
+            return {"last_file": None, "save_directory": None}
+        except Exception as e:
+            print(f"Error loading config: {e}")
+            return {"last_file": None, "save_directory": None}
+            
+    def save_config(self):
+        """Save configuration to JSON file"""
+        try:
+            with open(self.config_file, 'w') as f:
+                json.dump(self.config, f)
+        except Exception as e:
+            print(f"Error saving config: {e}")
 
 class CableDatabaseApp:
     def __init__(self):
