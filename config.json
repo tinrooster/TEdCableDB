@@ -1,9 +1,16 @@
 {
-    "last_file": null,
+    "last_file": "C:/cursor_dev/EXCEL Source DB/Cable DB.xlsm",
     "save_directory": null,
     "settings": {
-        "window_size": [800, 600],
+        "window_size": [
+            800,
+            600
+        ],
         "window_location": null,
-        "last_directory": null
+        "last_directory": null,
+        "excel_file_types": [
+            "*.xlsx",
+            "*.xlsm"
+        ]
     }
-} 
+}
